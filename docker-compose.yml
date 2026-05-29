@@ -1,0 +1,102 @@
+name: hphii-shr
+
+# Infra for the HPHII SHR / DSP PoC (CLAUDE.md §3, §10).
+# Bring up with:  docker compose up -d
+# Variables come from .env (copy from .env.example); defaults below keep it
+# runnable even without a .env file.
+
+services:
+  # ── Postgres backing the HAPI FHIR server ───────────────────
+  postgres-hapi:
+    image: postgres:16
+    container_name: hphii-postgres-hapi
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_HAPI_DB:-hapi}
+      POSTGRES_USER: ${POSTGRES_HAPI_USER:-hapi}
+      POSTGRES_PASSWORD: ${POSTGRES_HAPI_PASSWORD:-hapi}
+    volumes:
+      - postgres-hapi-data:/var/lib/postgresql/data
+    networks:
+      - hphii-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HAPI_USER:-hapi} -d ${POSTGRES_HAPI_DB:-hapi}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── HAPI FHIR JPA server (FHIR R4) — the real clinical store ─
+  hapi-fhir:
+    image: hapiproject/hapi:latest
+    container_name: hphii-hapi-fhir
+    restart: unless-stopped
+    depends_on:
+      postgres-hapi:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-hapi:5432/${POSTGRES_HAPI_DB:-hapi}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_HAPI_USER:-hapi}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_HAPI_PASSWORD:-hapi}
+      SPRING_DATASOURCE_DRIVERCLASSNAME: org.postgresql.Driver
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgres94Dialect
+      HAPI_FHIR_FHIR_VERSION: R4
+      HAPI_FHIR_ALLOW_MULTIPLE_DELETE: "true"
+      # Disable search-result caching so freshly seeded data is visible at once.
+      HAPI_FHIR_REUSE_CACHED_SEARCH_RESULTS_MILLIS: "-1"
+    networks:
+      - hphii-net
+    # No container healthcheck: the official hapiproject/hapi image is distroless
+    # (no shell/curl/wget), so an in-container HTTP probe cannot run. Connectivity
+    # is verified at the gateway via GET /fhir/metadata (see core/fhir, step P1).
+
+  # ── Postgres for the gateway (auth/RBAC/audit mirror; NO clinical data) ──
+  postgres-gateway:
+    image: postgres:16
+    container_name: hphii-postgres-gateway
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_GATEWAY_DB:-gateway}
+      POSTGRES_USER: ${POSTGRES_GATEWAY_USER:-gateway}
+      POSTGRES_PASSWORD: ${POSTGRES_GATEWAY_PASSWORD:-gateway}
+    ports:
+      # Host 5433 → container 5432 (avoids clashing with a local Postgres on 5432).
+      - "5433:5432"
+    volumes:
+      - postgres-gateway-data:/var/lib/postgresql/data
+    networks:
+      - hphii-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_GATEWAY_USER:-gateway} -d ${POSTGRES_GATEWAY_DB:-gateway}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Redis (BullMQ delayed jobs = the 15-min escalation timer) ─
+  redis:
+    image: redis:7-alpine
+    container_name: hphii-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - hphii-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-hapi-data:
+  postgres-gateway-data:
+  redis-data:
+
+networks:
+  hphii-net:
+    driver: bridge

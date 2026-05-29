@@ -1,0 +1,24 @@
+{
+  "name": "hphii-shr",
+  "version": "0.0.0",
+  "private": true,
+  "description": "HPHII Settat — Shared Health Record (SHR / DSP). FHIR R4 PoC: NestJS gateway + React PWA + HAPI FHIR.",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build:domain": "npm run build --workspace @hphii/fhir-domain",
+    "gateway:dev": "npm run start:dev --workspace @hphii/gateway",
+    "gateway:build": "npm run build --workspace @hphii/gateway",
+    "web:dev": "npm run dev --workspace @hphii/web",
+    "web:build": "npm run build --workspace @hphii/web",
+    "infra:up": "docker compose up -d",
+    "infra:down": "docker compose down",
+    "infra:logs": "docker compose logs -f"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

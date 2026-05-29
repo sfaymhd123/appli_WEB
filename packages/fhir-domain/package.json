@@ -1,0 +1,27 @@
+{
+  "name": "@hphii/fhir-domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared FHIR domain constants for the HPHII SHR (code systems, extension URLs, RBAC matrix, LOINC thresholds).",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && node ./scripts/fixup.mjs",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}
