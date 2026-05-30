@@ -56,11 +56,18 @@ export function PatientDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <Link to="/patients" className="text-sm text-clinical-700 hover:underline">
-          ← Patients
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">Dossier patient</h1>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Link to="/patients" className="text-sm text-clinical-700 hover:underline">
+            ← Patients
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900">Dossier patient</h1>
+        </div>
+        {id && (
+          <Link to={`/dsp/${id}`}>
+            <Button variant="secondary">Consulter le DSP</Button>
+          </Link>
+        )}
       </div>
 
       {patientQuery.isLoading ? (

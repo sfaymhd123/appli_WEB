@@ -6,6 +6,8 @@ import { ModulePlaceholderPage } from './features/placeholder/module-placeholder
 import { PatientsListPage } from './features/patients/patients-list-page';
 import { PatientRegistrationPage } from './features/patients/patient-registration-page';
 import { PatientDetailPage } from './features/patients/patient-detail-page';
+import { DspEntryPage } from './features/dsp/dsp-entry-page';
+import { DspPage } from './features/dsp/dsp-page';
 import { TriagePage } from './features/triage/triage-page';
 import { ProtectedRoute, RequireResource, RequireRole } from './routes/protected-route';
 
@@ -41,6 +43,10 @@ export default function App() {
             </RequireResource>
           }
         />
+        {/* DSP (M6): read_record is allowed for all roles — the gateway filters
+            the Bundle per §6, so no client-side resource/role gate here. */}
+        <Route path="/dsp" element={<DspEntryPage />} />
+        <Route path="/dsp/:patientId" element={<DspPage />} />
         <Route
           path="/triage"
           element={

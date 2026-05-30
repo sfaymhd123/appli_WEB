@@ -42,6 +42,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
     resource: 'Patient',
   },
   {
+    to: '/dsp',
+    label: 'Dossier partagé (DSP)',
+    module: 'M6',
+    description: 'Consultation du dossier filtrée par rôle (RBAC §6).',
+  },
+  {
     to: '/triage',
     label: 'Triage',
     module: 'M2',
