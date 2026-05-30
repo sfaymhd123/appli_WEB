@@ -2,6 +2,9 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { LoginPage } from './features/auth/login-page';
 import { DashboardPage } from './features/dashboard/dashboard-page';
 import { ModulePlaceholderPage } from './features/placeholder/module-placeholder-page';
+import { PatientsListPage } from './features/patients/patients-list-page';
+import { PatientRegistrationPage } from './features/patients/patient-registration-page';
+import { PatientDetailPage } from './features/patients/patient-detail-page';
 import { ProtectedRoute, RequireResource } from './routes/protected-route';
 
 export default function App() {
@@ -16,7 +19,23 @@ export default function App() {
           path="/patients"
           element={
             <RequireResource resource="Patient">
-              <ModulePlaceholderPage />
+              <PatientsListPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/patients/new"
+          element={
+            <RequireResource resource="Patient">
+              <PatientRegistrationPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/patients/:id"
+          element={
+            <RequireResource resource="Patient">
+              <PatientDetailPage />
             </RequireResource>
           }
         />

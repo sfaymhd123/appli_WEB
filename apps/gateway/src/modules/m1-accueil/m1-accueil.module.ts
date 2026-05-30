@@ -1,5 +1,13 @@
 import { Module } from '@nestjs/common';
 
-/** M1 — Accueil & Identité: Patient + Coverage (filled in P5). */
-@Module({})
+import { FhirModule } from '../../core/fhir';
+import { M1AccueilController } from './m1-accueil.controller';
+import { M1AccueilService } from './m1-accueil.service';
+
+/** M1 — Accueil & Identité: Patient + Coverage (CLAUDE.md §2). */
+@Module({
+  imports: [FhirModule],
+  controllers: [M1AccueilController],
+  providers: [M1AccueilService],
+})
 export class M1AccueilModule {}
