@@ -1,33 +1,84 @@
-import { Routes, Route } from 'react-router-dom';
-import { ALL_ROLES, RoleLabels } from '@hphii/fhir-domain';
-
-function Home() {
-  return (
-    <main className="min-h-screen bg-clinical-light/40 flex items-center justify-center p-6">
-      <div className="max-w-lg w-full rounded-2xl bg-white shadow-md border border-clinical-light p-8">
-        <h1 className="text-3xl font-bold text-clinical-dark">HPHII SHR</h1>
-        <p className="mt-2 text-gray-600">
-          Dossier de Santé Partagé — Hôpital Provincial Hassan II de Settat
-        </p>
-        <p className="mt-6 text-sm font-medium text-gray-500">
-          FHIR domain loaded — {ALL_ROLES.length} RBAC roles:
-        </p>
-        <ul className="mt-2 space-y-1">
-          {ALL_ROLES.map((role) => (
-            <li key={role} className="text-sm text-gray-700">
-              <span className="font-mono text-clinical">{role}</span> — {RoleLabels[role]}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </main>
-  );
-}
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { LoginPage } from './features/auth/login-page';
+import { DashboardPage } from './features/dashboard/dashboard-page';
+import { ModulePlaceholderPage } from './features/placeholder/module-placeholder-page';
+import { ProtectedRoute, RequireResource } from './routes/protected-route';
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Authenticated app shell */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route
+          path="/patients"
+          element={
+            <RequireResource resource="Patient">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/observations"
+          element={
+            <RequireResource resource="Observation">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/alerts"
+          element={
+            <RequireResource resource="DetectedIssue">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/care-plans"
+          element={
+            <RequireResource resource="CarePlan">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/documents"
+          element={
+            <RequireResource resource="DocumentReference">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/lab-results"
+          element={
+            <RequireResource resource="DiagnosticReport">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/prescriptions"
+          element={
+            <RequireResource resource="MedicationRequest">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+        <Route
+          path="/audit"
+          element={
+            <RequireResource resource="AuditEvent">
+              <ModulePlaceholderPage />
+            </RequireResource>
+          }
+        />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
