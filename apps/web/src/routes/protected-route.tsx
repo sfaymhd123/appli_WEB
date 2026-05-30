@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import {
   allowedResourcesForRole,
   type FilteredResourceType,
+  type Role,
 } from '@hphii/fhir-domain';
 import { useAuth } from '../lib/auth/auth-context';
 import { AppLayout } from '../components/layout/app-layout';
@@ -42,6 +43,26 @@ export function RequireResource({
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (!allowedResourcesForRole(user.role).includes(resource)) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
+/**
+ * Per-route authorization gate by role. Used for sections that are not driven
+ * by the §6 $everything resource filter — e.g. M2 Triage (Encounter-based),
+ * which nurses and physicians may use.
+ */
+export function RequireRole({
+  roles,
+  children,
+}: {
+  roles: readonly Role[];
+  children: ReactElement;
+}) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  if (!roles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
   return children;

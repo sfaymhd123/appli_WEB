@@ -14,6 +14,7 @@ import { AuditService } from './audit.service';
 interface AuditableRequest {
   user?: AuthenticatedUser;
   params?: Record<string, string>;
+  body?: Record<string, unknown>;
 }
 
 /**
@@ -57,17 +58,40 @@ export class AuditInterceptor implements NestInterceptor {
   }
 }
 
-/** Resolve the audited entity reference from the route params or the response. */
+/**
+ * Resolve the audited entity reference, trying (in order):
+ *   1. route param `patientId` / `id`           → Patient/{id}   (M1-style routes)
+ *   2. request-body `patientId`                  → Patient/{id}   (M2 POST /triage)
+ *   3. response is a Patient resource            → Patient/{id}
+ *   4. response carries subject/patient/for ref  → that reference (e.g. PUT /triage → Encounter.subject)
+ */
 function resolveAuditEntity(req: AuditableRequest, body: unknown): string | undefined {
   const params = req.params ?? {};
-  const id = params.patientId ?? params.id;
-  if (typeof id === 'string' && id.length > 0) {
-    return `Patient/${id}`;
+  const paramId = params.patientId ?? params.id;
+  if (typeof paramId === 'string' && paramId.length > 0) {
+    return `Patient/${paramId}`;
   }
+
+  const bodyPatientId = req.body?.patientId;
+  if (typeof bodyPatientId === 'string' && bodyPatientId.length > 0) {
+    return `Patient/${bodyPatientId}`;
+  }
+
   if (body !== null && typeof body === 'object') {
-    const resource = body as { resourceType?: string; id?: string };
+    const resource = body as {
+      resourceType?: string;
+      id?: string;
+      subject?: { reference?: string };
+      patient?: { reference?: string };
+      for?: { reference?: string };
+    };
     if (resource.resourceType === 'Patient' && typeof resource.id === 'string') {
       return `Patient/${resource.id}`;
+    }
+    const ref =
+      resource.subject?.reference ?? resource.patient?.reference ?? resource.for?.reference;
+    if (typeof ref === 'string' && ref.length > 0) {
+      return ref;
     }
   }
   return undefined;

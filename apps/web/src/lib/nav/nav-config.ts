@@ -1,7 +1,7 @@
 import {
+  Role,
   allowedResourcesForRole,
   type FilteredResourceType,
-  type Role,
 } from '@hphii/fhir-domain';
 
 export interface NavItem {
@@ -16,6 +16,11 @@ export interface NavItem {
    * allowed set. Items without a resource (e.g. the dashboard) are always shown.
    */
   resource?: FilteredResourceType;
+  /**
+   * Roles allowed to see this item, for sections not governed by the §6
+   * resource filter (e.g. M2 Triage). When set, the role must be included.
+   */
+  roles?: readonly Role[];
 }
 
 /**
@@ -35,6 +40,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     module: 'M1',
     description: 'Identité patient, couverture RAMED/AMO.',
     resource: 'Patient',
+  },
+  {
+    to: '/triage',
+    label: 'Triage',
+    module: 'M2',
+    description: 'Priorisation algorithmique (P1–P5) et file d’attente.',
+    roles: [Role.NURSE, Role.PHYSICIAN],
   },
   {
     to: '/observations',
@@ -87,8 +99,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
 ];
 
-/** Nav items a role may see, per the §6 $everything filter. */
+/** Nav items a role may see, per the §6 $everything filter and explicit roles. */
 export function visibleNavItems(role: Role): NavItem[] {
   const allowed = allowedResourcesForRole(role);
-  return NAV_ITEMS.filter((item) => !item.resource || allowed.includes(item.resource));
+  return NAV_ITEMS.filter((item) => {
+    if (item.resource && !allowed.includes(item.resource)) return false;
+    if (item.roles && !item.roles.includes(role)) return false;
+    return true;
+  });
 }

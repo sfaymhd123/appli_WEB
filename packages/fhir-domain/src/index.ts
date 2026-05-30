@@ -35,6 +35,9 @@ export const HphiiUrls = {
   ESCALATION_TIMER_MINUTES: 'https://hphii.ma/fhir/escalation-timer-minutes',
   RBAC_ROLES: 'https://hphii.ma/fhir/rbac-roles',
   RBAC_FILTER: 'https://hphii.ma/fhir/rbac-filter',
+  // M2 triage (P1..P5) — not a FHIR R4 concept, modelled as a named extension.
+  TRIAGE_PRIORITY: 'https://hphii.ma/fhir/triage-priority',
+  TRIAGE_OUTCOME: 'https://hphii.ma/fhir/triage-outcome',
 } as const;
 
 /* ============================================================
@@ -69,6 +72,89 @@ export const AcknowledgementStatus = {
 } as const;
 export type AcknowledgementStatus =
   (typeof AcknowledgementStatus)[keyof typeof AcknowledgementStatus];
+
+/* ============================================================
+ * §2/§8 — M2 Triage: 5-level priority scale + symptom severity
+ * ========================================================== */
+/** Algorithmic triage priority, P1 (critical) … P5 (non-urgent). */
+export const TriagePriority = {
+  P1: 'P1',
+  P2: 'P2',
+  P3: 'P3',
+  P4: 'P4',
+  P5: 'P5',
+} as const;
+export type TriagePriority = (typeof TriagePriority)[keyof typeof TriagePriority];
+
+/** P1…P5 ordered from most to least urgent. */
+export const TRIAGE_PRIORITIES: readonly TriagePriority[] = ['P1', 'P2', 'P3', 'P4', 'P5'];
+
+/** French labels for the triage levels (user-facing UI). */
+export const TriagePriorityLabels: Record<TriagePriority, string> = {
+  P1: 'P1 — Critique',
+  P2: 'P2 — Très urgent',
+  P3: 'P3 — Urgent',
+  P4: 'P4 — Moins urgent',
+  P5: 'P5 — Non urgent',
+};
+
+/** Numeric rank (1 = most urgent) for sorting/comparison. */
+export function triagePriorityRank(priority: TriagePriority): number {
+  return TRIAGE_PRIORITIES.indexOf(priority) + 1;
+}
+
+/** The most urgent (lowest-ranked) priority from a non-empty list. */
+export function mostUrgentPriority(priorities: readonly TriagePriority[]): TriagePriority {
+  return priorities.reduce((worst, p) =>
+    triagePriorityRank(p) < triagePriorityRank(worst) ? p : worst,
+  );
+}
+
+/** Symptom severity reported at triage (drives the symptom branch of the engine). */
+export const SymptomSeverity = {
+  MILD: 'mild',
+  MODERATE: 'moderate',
+  SEVERE: 'severe',
+  CRITICAL: 'critical',
+} as const;
+export type SymptomSeverity = (typeof SymptomSeverity)[keyof typeof SymptomSeverity];
+
+export const SYMPTOM_SEVERITIES: readonly SymptomSeverity[] = [
+  'mild',
+  'moderate',
+  'severe',
+  'critical',
+];
+
+export const SymptomSeverityLabels: Record<SymptomSeverity, string> = {
+  mild: 'Léger',
+  moderate: 'Modéré',
+  severe: 'Sévère',
+  critical: 'Critique',
+};
+
+/** Triage disposition recorded when a clinician validates/overrides (PUT). */
+export const TriageOutcome = {
+  ADMITTED: 'admitted',
+  DISCHARGED: 'discharged',
+  REFERRED_EXTERNAL: 'referred-external',
+  IN_OBSERVATION: 'in-observation',
+} as const;
+export type TriageOutcome = (typeof TriageOutcome)[keyof typeof TriageOutcome];
+
+export const TRIAGE_OUTCOMES: readonly TriageOutcome[] = [
+  'admitted',
+  'discharged',
+  'referred-external',
+  'in-observation',
+];
+
+export const TriageOutcomeLabels: Record<TriageOutcome, string> = {
+  admitted: 'Admis',
+  discharged: 'Sortie',
+  'referred-external': 'Transféré (établissement externe)',
+  'in-observation': 'En observation',
+};
 
 /* ============================================================
  * §6 — The 5 RBAC roles (code → French label)

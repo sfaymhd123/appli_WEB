@@ -9,6 +9,9 @@ export interface AppConfig {
   redisUrl: string;
   smsProvider: string;
   alertEscalationMinutes: number;
+  /** SMS destinations for alerts (CLAUDE.md §8). PoC defaults; override via env. */
+  referringNursePhone: string;
+  seniorPhysicianPhone: string;
   /** Gateway Postgres (auth/RBAC/audit mirror — NO clinical data). Consumed by Prisma. */
   gatewayDatabaseUrl: string;
   /** RS256 key material for signing/verifying JWTs. Paths are read at boot (PEM contents). */
@@ -29,6 +32,8 @@ export default (): AppConfig => ({
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
   smsProvider: process.env.SMS_PROVIDER ?? 'console',
   alertEscalationMinutes: parseInt(process.env.ALERT_ESCALATION_MINUTES ?? '15', 10),
+  referringNursePhone: process.env.REFERRING_NURSE_PHONE ?? '+212600000001',
+  seniorPhysicianPhone: process.env.SENIOR_PHYSICIAN_PHONE ?? '+212600000000',
   gatewayDatabaseUrl:
     process.env.GATEWAY_DATABASE_URL ??
     'postgresql://gateway:gateway@localhost:5433/gateway?schema=public',

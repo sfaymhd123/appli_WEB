@@ -1,11 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { Role } from '@hphii/fhir-domain';
 import { LoginPage } from './features/auth/login-page';
 import { DashboardPage } from './features/dashboard/dashboard-page';
 import { ModulePlaceholderPage } from './features/placeholder/module-placeholder-page';
 import { PatientsListPage } from './features/patients/patients-list-page';
 import { PatientRegistrationPage } from './features/patients/patient-registration-page';
 import { PatientDetailPage } from './features/patients/patient-detail-page';
-import { ProtectedRoute, RequireResource } from './routes/protected-route';
+import { TriagePage } from './features/triage/triage-page';
+import { ProtectedRoute, RequireResource, RequireRole } from './routes/protected-route';
 
 export default function App() {
   return (
@@ -37,6 +39,14 @@ export default function App() {
             <RequireResource resource="Patient">
               <PatientDetailPage />
             </RequireResource>
+          }
+        />
+        <Route
+          path="/triage"
+          element={
+            <RequireRole roles={[Role.NURSE, Role.PHYSICIAN]}>
+              <TriagePage />
+            </RequireRole>
           }
         />
         <Route
