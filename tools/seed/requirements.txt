@@ -1,0 +1,5 @@
+# HPHII SHR — cohort seeder (xlsx → FHIR R4 → HAPI) dependencies.
+# CLAUDE.md §3: Python 3.11+ ; pandas + openpyxl + requests.
+pandas>=2.2,<3
+openpyxl>=3.1,<4
+requests>=2.31,<3

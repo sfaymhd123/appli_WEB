@@ -1,0 +1,43 @@
+{
+  "generated_at": "2026-05-30T15:40:00+00:00",
+  "source": "Telehealth_Framework_Complete.xlsx",
+  "patients_total": 371,
+  "cases_total": 531,
+  "pathway_mix": {
+    "chronic": 232,
+    "episodic": 299,
+    "chronic_pct": 43.7,
+    "episodic_pct": 56.3
+  },
+  "monitoring_observations_total": 10440,
+  "service_results": {
+    "total": 553,
+    "abnormal": 94,
+    "abnormal_pct": 17.0
+  },
+  "alerts": {
+    "total": 626,
+    "by_status": {
+      "Acknowledged": 445,
+      "Pending": 114,
+      "Escalated": 67
+    },
+    "acknowledged_pct": 71.1,
+    "pending_pct": 18.2,
+    "escalated_pct": 10.7,
+    "unacknowledged_pct": 28.9
+  },
+  "dsp_access_by_role": {
+    "Physician": 816,
+    "Nurse": 767,
+    "Admin": 400,
+    "Lab Technician": 320,
+    "Pharmacist": 318
+  },
+  "triage_priority_distribution": {
+    "Medium": 303,
+    "Low": 164,
+    "High": 140,
+    "Critical": 51
+  }
+}
