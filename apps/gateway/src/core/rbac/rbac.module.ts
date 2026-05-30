@@ -1,5 +1,14 @@
 import { Module } from '@nestjs/common';
 
-/** RBAC: RolesGuard + PolicyService over the §6 matrix (filled in P2). */
-@Module({})
+import { PolicyService } from './policy.service';
+
+/**
+ * RBAC over the §6 matrix. PolicyService is exported for M5/M6 and for the
+ * global RolesGuard (registered in AppModule). The @Roles()/@RequireAction()
+ * decorators live alongside it.
+ */
+@Module({
+  providers: [PolicyService],
+  exports: [PolicyService],
+})
 export class RbacModule {}

@@ -9,6 +9,17 @@ export interface AppConfig {
   redisUrl: string;
   smsProvider: string;
   alertEscalationMinutes: number;
+  /** Gateway Postgres (auth/RBAC/audit mirror — NO clinical data). Consumed by Prisma. */
+  gatewayDatabaseUrl: string;
+  /** RS256 key material for signing/verifying JWTs. Paths are read at boot (PEM contents). */
+  jwtPrivateKeyPath: string;
+  jwtPublicKeyPath: string;
+  jwtIssuer: string;
+  /** Access/refresh token lifetimes, in seconds. */
+  jwtAccessTtl: number;
+  jwtRefreshTtl: number;
+  /** Label shown in authenticator apps for TOTP MFA. */
+  mfaIssuer: string;
 }
 
 export default (): AppConfig => ({
@@ -18,4 +29,13 @@ export default (): AppConfig => ({
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
   smsProvider: process.env.SMS_PROVIDER ?? 'console',
   alertEscalationMinutes: parseInt(process.env.ALERT_ESCALATION_MINUTES ?? '15', 10),
+  gatewayDatabaseUrl:
+    process.env.GATEWAY_DATABASE_URL ??
+    'postgresql://gateway:gateway@localhost:5433/gateway?schema=public',
+  jwtPrivateKeyPath: process.env.JWT_PRIVATE_KEY_PATH ?? './secrets/jwt-private.pem',
+  jwtPublicKeyPath: process.env.JWT_PUBLIC_KEY_PATH ?? './secrets/jwt-public.pem',
+  jwtIssuer: process.env.JWT_ISSUER ?? 'hphii-shr',
+  jwtAccessTtl: parseInt(process.env.JWT_ACCESS_TTL ?? '900', 10),
+  jwtRefreshTtl: parseInt(process.env.JWT_REFRESH_TTL ?? '2592000', 10),
+  mfaIssuer: process.env.MFA_ISSUER ?? 'HPHII-SHR',
 });

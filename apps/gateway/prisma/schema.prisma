@@ -1,0 +1,74 @@
+// Gateway database (CLAUDE.md §3): users, roles, sessions, MFA secrets, audit
+// mirror. NO clinical data here — clinical data lives in HAPI FHIR.
+//
+// Connection string comes from env (GATEWAY_DATABASE_URL). The gateway runs
+// from apps/gateway; the npm scripts load ../../.env via dotenv-cli.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("GATEWAY_DATABASE_URL")
+}
+
+/// The 5 RBAC roles (CLAUDE.md §6). Prisma enum identifiers can't contain a
+/// hyphen, so `Lab-Technician` is stored via @map; see auth/role.mapper.ts for
+/// the translation to/from the fhir-domain role string.
+enum Role {
+  Physician
+  Nurse
+  Admin
+  Pharmacist
+  LabTechnician @map("Lab-Technician")
+}
+
+/// A gateway operator. One per role is seeded (prisma/seed.ts).
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role
+  totpSecret   String? // base32 TOTP secret; null until MFA is enrolled
+  isMfaEnabled Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+/// Opaque refresh tokens, stored hashed (never in clear). Rotated on use.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique // sha256 of the opaque token
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// Fast-query mirror of the ATNA AuditEvent posted to HAPI (CLAUDE.md §3, §8).
+/// Stores only audit metadata + resource references (IDs) — never clinical
+/// content. A null fhirAuditEventId flags an event that failed to persist to HAPI.
+model AuditMirror {
+  id               String   @id @default(uuid())
+  actorSub         String // gateway user id (JWT sub) — NOT a patient identifier
+  actorRole        String
+  action           String // FHIR AuditEvent.action: C | R | U | D | E
+  entity           String // resource reference, e.g. "Patient/123"
+  outcome          String // FHIR AuditEvent.outcome: 0 = success
+  recordedAt       DateTime
+  fhirAuditEventId String? // id of the AuditEvent in HAPI; null if the POST failed
+  createdAt        DateTime @default(now())
+
+  @@index([entity])
+  @@index([actorSub])
+  @@map("audit_mirror")
+}

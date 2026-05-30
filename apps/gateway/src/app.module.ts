@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
 import configuration from './core/config/configuration';
 import { HealthController } from './health/health.controller';
 
-// Core cross-cutting layers (CLAUDE.md §4) — placeholders, filled in P1+.
+// Core cross-cutting layers (CLAUDE.md §4).
+import { PrismaModule } from './core/prisma/prisma.module';
 import { FhirModule } from './core/fhir/fhir.module';
 import { AuthModule } from './core/auth/auth.module';
+import { JwtAuthGuard } from './core/auth/guards/jwt-auth.guard';
 import { RbacModule } from './core/rbac/rbac.module';
+import { RolesGuard } from './core/rbac/guards/roles.guard';
 import { AuditModule } from './core/audit/audit.module';
+import { AuditInterceptor } from './core/audit/audit.interceptor';
 import { EventsModule } from './core/events/events.module';
 import { SmsModule } from './core/sms/sms.module';
 
@@ -29,6 +34,7 @@ import { M6DspModule } from './modules/m6-dsp/m6-dsp.module';
       envFilePath: ['../../.env'],
     }),
     // Core
+    PrismaModule,
     FhirModule,
     AuthModule,
     RbacModule,
@@ -44,5 +50,11 @@ import { M6DspModule } from './modules/m6-dsp/m6-dsp.module';
     M6DspModule,
   ],
   controllers: [HealthController],
+  providers: [
+    // Global security chain: authenticate (JWT) → authorize (RBAC) → audit.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
 })
 export class AppModule {}

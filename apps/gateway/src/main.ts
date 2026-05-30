@@ -1,4 +1,4 @@
-import { Logger } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -9,6 +9,9 @@ async function bootstrap(): Promise<void> {
 
   // The web PWA (Vite, :5173) calls the gateway cross-origin.
   app.enableCors({ origin: true, credentials: true });
+
+  // Validate + strip unknown fields on every DTO at the controller boundary.
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const config = app.get(ConfigService<AppConfig, true>);
   const port = config.get('port', { infer: true });

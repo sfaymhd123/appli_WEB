@@ -1,5 +1,15 @@
 import { Module } from '@nestjs/common';
 
-/** ATNA audit: interceptor posting AuditEvent per DSP access (filled in P2). */
-@Module({})
+import { FhirModule } from '../fhir/fhir.module';
+import { AuditService } from './audit.service';
+
+/**
+ * ATNA audit. AuditService posts AuditEvents to HAPI (via FhirService) and
+ * mirrors them locally. The global AuditInterceptor is registered in AppModule.
+ */
+@Module({
+  imports: [FhirModule],
+  providers: [AuditService],
+  exports: [AuditService],
+})
 export class AuditModule {}
