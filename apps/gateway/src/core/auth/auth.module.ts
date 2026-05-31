@@ -38,6 +38,8 @@ import { JwtStrategy } from './jwt.strategy';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  // JwtModule is re-exported so other modules (e.g. M4's SSE stream, which can't
+  // use the bearer header) can verify access tokens with the same RS256 keys.
+  exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

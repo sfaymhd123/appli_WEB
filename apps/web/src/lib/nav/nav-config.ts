@@ -69,6 +69,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     resource: 'DetectedIssue',
   },
   {
+    to: '/sms-intake',
+    label: 'Saisie SMS',
+    module: 'M4',
+    description: 'Relevé patient bas débit (SMS) alimentant le moteur de seuils.',
+    roles: [Role.NURSE, Role.PHYSICIAN],
+  },
+  {
     to: '/care-plans',
     label: 'Plans de soins',
     module: 'M3a',

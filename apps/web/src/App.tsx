@@ -9,6 +9,8 @@ import { PatientDetailPage } from './features/patients/patient-detail-page';
 import { DspEntryPage } from './features/dsp/dsp-entry-page';
 import { DspPage } from './features/dsp/dsp-page';
 import { TriagePage } from './features/triage/triage-page';
+import { MonitoringDashboardPage } from './features/monitoring/monitoring-dashboard-page';
+import { SmsIntakePage } from './features/monitoring/sms-intake-page';
 import { ProtectedRoute, RequireResource, RequireRole } from './routes/protected-route';
 
 export default function App() {
@@ -55,11 +57,12 @@ export default function App() {
             </RequireRole>
           }
         />
+        {/* M4 monitoring dashboard — Observation + DetectedIssue both live here. */}
         <Route
           path="/observations"
           element={
             <RequireResource resource="Observation">
-              <ModulePlaceholderPage />
+              <MonitoringDashboardPage />
             </RequireResource>
           }
         />
@@ -67,8 +70,16 @@ export default function App() {
           path="/alerts"
           element={
             <RequireResource resource="DetectedIssue">
-              <ModulePlaceholderPage />
+              <MonitoringDashboardPage />
             </RequireResource>
+          }
+        />
+        <Route
+          path="/sms-intake"
+          element={
+            <RequireRole roles={[Role.NURSE, Role.PHYSICIAN]}>
+              <SmsIntakePage />
+            </RequireRole>
           }
         />
         <Route

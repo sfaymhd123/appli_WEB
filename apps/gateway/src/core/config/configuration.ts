@@ -9,6 +9,12 @@ export interface AppConfig {
   redisUrl: string;
   smsProvider: string;
   alertEscalationMinutes: number;
+  /**
+   * Optional sub-minute escalation delay (seconds). When > 0 it overrides
+   * `alertEscalationMinutes` — used only to make the 15-min timer observable in
+   * a live demo/test. Leave unset (0) in normal operation.
+   */
+  alertEscalationSeconds: number;
   /** SMS destinations for alerts (CLAUDE.md §8). PoC defaults; override via env. */
   referringNursePhone: string;
   seniorPhysicianPhone: string;
@@ -32,6 +38,7 @@ export default (): AppConfig => ({
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
   smsProvider: process.env.SMS_PROVIDER ?? 'console',
   alertEscalationMinutes: parseInt(process.env.ALERT_ESCALATION_MINUTES ?? '15', 10),
+  alertEscalationSeconds: parseInt(process.env.ALERT_ESCALATION_SECONDS ?? '0', 10),
   referringNursePhone: process.env.REFERRING_NURSE_PHONE ?? '+212600000001',
   seniorPhysicianPhone: process.env.SENIOR_PHYSICIAN_PHONE ?? '+212600000000',
   gatewayDatabaseUrl:
