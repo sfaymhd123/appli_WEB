@@ -38,6 +38,9 @@ export const HphiiUrls = {
   // M2 triage (P1..P5) — not a FHIR R4 concept, modelled as a named extension.
   TRIAGE_PRIORITY: 'https://hphii.ma/fhir/triage-priority',
   TRIAGE_OUTCOME: 'https://hphii.ma/fhir/triage-outcome',
+  // M3 chronic pathway — "this CarePlan needs review" marker (set by the M4
+  // HbA1c>7 event). A complex extension; sub-extensions: status/reason/requestedAt.
+  CAREPLAN_REVIEW: 'https://hphii.ma/fhir/careplan-review',
 } as const;
 
 /* ============================================================
@@ -155,6 +158,42 @@ export const TriageOutcomeLabels: Record<TriageOutcome, string> = {
   'referred-external': 'Transféré (établissement externe)',
   'in-observation': 'En observation',
 };
+
+/* ============================================================
+ * §2 — M3 Parcours: chronic / episodic bifurcation
+ * ========================================================== */
+/**
+ * The patient's care pathway, derived by the gateway (not a FHIR field):
+ *  - `chronic`  — an active CarePlan exists (M3a),
+ *  - `episodic` — an active Encounter exists without a CarePlan (M3b),
+ *  - `none`     — neither.
+ * A patient with both an active CarePlan and an active Encounter is reported
+ * `chronic` (the longitudinal plan takes precedence for classification).
+ */
+export const PathwayType = {
+  CHRONIC: 'chronic',
+  EPISODIC: 'episodic',
+  NONE: 'none',
+} as const;
+export type PathwayType = (typeof PathwayType)[keyof typeof PathwayType];
+
+export const PathwayTypeLabels: Record<PathwayType, string> = {
+  chronic: 'Parcours chronique',
+  episodic: 'Parcours épisodique',
+  none: 'Aucun parcours actif',
+};
+
+/**
+ * Lifecycle of a CarePlan review request (CLAUDE.md §8 — HbA1c > 7 triggers a
+ * review). Stored in the {@link HphiiUrls.CAREPLAN_REVIEW} extension; not a FHIR
+ * status, so modelled as a named value set.
+ */
+export const CarePlanReviewStatus = {
+  NEEDED: 'Needed',
+  CLEARED: 'Cleared',
+} as const;
+export type CarePlanReviewStatus =
+  (typeof CarePlanReviewStatus)[keyof typeof CarePlanReviewStatus];
 
 /* ============================================================
  * §6 — The 5 RBAC roles (code → French label)

@@ -8,6 +8,8 @@ import { PatientRegistrationPage } from './features/patients/patient-registratio
 import { PatientDetailPage } from './features/patients/patient-detail-page';
 import { DspEntryPage } from './features/dsp/dsp-entry-page';
 import { DspPage } from './features/dsp/dsp-page';
+import { PathwayEntryPage } from './features/pathway/pathway-entry-page';
+import { PathwayPage } from './features/pathway/pathway-page';
 import { TriagePage } from './features/triage/triage-page';
 import { MonitoringDashboardPage } from './features/monitoring/monitoring-dashboard-page';
 import { SmsIntakePage } from './features/monitoring/sms-intake-page';
@@ -82,12 +84,23 @@ export default function App() {
             </RequireRole>
           }
         />
+        {/* M3 parcours (chronic CarePlan + episodic Encounter). Nurse modifies the
+            care record per §6 ("Modify clinical record: Nurse Yes (care)"); the §6
+            $everything CarePlan→Physician filter governs only the M6 DSP bundle. */}
         <Route
           path="/care-plans"
           element={
-            <RequireResource resource="CarePlan">
-              <ModulePlaceholderPage />
-            </RequireResource>
+            <RequireRole roles={[Role.PHYSICIAN, Role.NURSE]}>
+              <PathwayEntryPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/care-plans/:patientId"
+          element={
+            <RequireRole roles={[Role.PHYSICIAN, Role.NURSE]}>
+              <PathwayPage />
+            </RequireRole>
           }
         />
         <Route

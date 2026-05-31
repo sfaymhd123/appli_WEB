@@ -7,6 +7,8 @@ export * from './task';
 export * from './care-plan';
 export * from './condition';
 export * from './flag';
+export * from './goal';
+export * from './care-team';
 export * from './observation';
 export * from './detected-issue';
 export * from './medication-request';

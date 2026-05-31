@@ -77,10 +77,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     to: '/care-plans',
-    label: 'Plans de soins',
-    module: 'M3a',
-    description: 'Parcours chronique : objectifs et équipe de soins.',
-    resource: 'CarePlan',
+    label: 'Parcours de soins',
+    module: 'M3',
+    description: 'Parcours chronique (plan de soins) et épisodique (épisode aigu).',
+    roles: [Role.PHYSICIAN, Role.NURSE],
   },
   {
     to: '/documents',
