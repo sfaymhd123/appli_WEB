@@ -13,6 +13,7 @@ import { PathwayPage } from './features/pathway/pathway-page';
 import { TriagePage } from './features/triage/triage-page';
 import { MonitoringDashboardPage } from './features/monitoring/monitoring-dashboard-page';
 import { SmsIntakePage } from './features/monitoring/sms-intake-page';
+import { ServicesPage } from './features/services/services-page';
 import { ProtectedRoute, RequireResource, RequireRole } from './routes/protected-route';
 
 export default function App() {
@@ -111,20 +112,14 @@ export default function App() {
             </RequireResource>
           }
         />
+        {/* M5 services — one role-aware screen (Physician orders, Pharmacist
+            validates, Lab-Technician records results) per §6. */}
         <Route
-          path="/lab-results"
+          path="/services"
           element={
-            <RequireResource resource="DiagnosticReport">
-              <ModulePlaceholderPage />
-            </RequireResource>
-          }
-        />
-        <Route
-          path="/prescriptions"
-          element={
-            <RequireResource resource="MedicationRequest">
-              <ModulePlaceholderPage />
-            </RequireResource>
+            <RequireRole roles={[Role.PHYSICIAN, Role.PHARMACIST, Role.LAB_TECHNICIAN]}>
+              <ServicesPage />
+            </RequireRole>
           }
         />
         <Route

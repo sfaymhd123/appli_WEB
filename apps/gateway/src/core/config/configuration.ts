@@ -18,6 +18,8 @@ export interface AppConfig {
   /** SMS destinations for alerts (CLAUDE.md §8). PoC defaults; override via env. */
   referringNursePhone: string;
   seniorPhysicianPhone: string;
+  /** SMS destination for M5 abnormal-result notifications to the ordering physician. */
+  orderingPhysicianPhone: string;
   /** Gateway Postgres (auth/RBAC/audit mirror — NO clinical data). Consumed by Prisma. */
   gatewayDatabaseUrl: string;
   /** RS256 key material for signing/verifying JWTs. Paths are read at boot (PEM contents). */
@@ -41,6 +43,7 @@ export default (): AppConfig => ({
   alertEscalationSeconds: parseInt(process.env.ALERT_ESCALATION_SECONDS ?? '0', 10),
   referringNursePhone: process.env.REFERRING_NURSE_PHONE ?? '+212600000001',
   seniorPhysicianPhone: process.env.SENIOR_PHYSICIAN_PHONE ?? '+212600000000',
+  orderingPhysicianPhone: process.env.ORDERING_PHYSICIAN_PHONE ?? '+212600000002',
   gatewayDatabaseUrl:
     process.env.GATEWAY_DATABASE_URL ??
     'postgresql://gateway:gateway@localhost:5433/gateway?schema=public',

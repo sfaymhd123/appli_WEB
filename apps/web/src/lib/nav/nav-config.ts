@@ -90,18 +90,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
     resource: 'DocumentReference',
   },
   {
-    to: '/lab-results',
-    label: 'Résultats de laboratoire',
+    to: '/services',
+    label: 'Services médico-techniques',
     module: 'M5',
-    description: 'Comptes rendus biologiques.',
-    resource: 'DiagnosticReport',
-  },
-  {
-    to: '/prescriptions',
-    label: 'Prescriptions',
-    module: 'M5',
-    description: 'Demandes de médicaments à valider.',
-    resource: 'MedicationRequest',
+    description:
+      'Pharmacie, laboratoire et imagerie : prescriptions, file de validation et résultats.',
+    roles: [Role.PHYSICIAN, Role.PHARMACIST, Role.LAB_TECHNICIAN],
   },
   {
     to: '/audit',

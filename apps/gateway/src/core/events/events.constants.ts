@@ -20,7 +20,9 @@ export type DomainEventKind =
   | 'alert.acknowledged'
   | 'alert.resolved'
   | 'alert.escalated'
-  | 'careplan.review-needed';
+  | 'careplan.review-needed'
+  // M5 — an abnormal DiagnosticReport notifies the ordering physician (§2).
+  | 'result.abnormal';
 
 /**
  * A single in-app domain event. PHI-safe by contract: it carries resource
@@ -33,6 +35,8 @@ export interface DomainEvent {
   at: string;
   /** DetectedIssue logical id when the event concerns an alert. */
   detectedIssueId?: string;
+  /** DiagnosticReport logical id when the event concerns a lab/imaging result. */
+  diagnosticReportId?: string;
   /** Patient reference, e.g. "Patient/123". */
   patient?: string;
   /** DetectedIssue severity (high/moderate/low) when relevant. */

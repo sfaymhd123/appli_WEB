@@ -41,6 +41,9 @@ export const HphiiUrls = {
   // M3 chronic pathway — "this CarePlan needs review" marker (set by the M4
   // HbA1c>7 event). A complex extension; sub-extensions: status/reason/requestedAt.
   CAREPLAN_REVIEW: 'https://hphii.ma/fhir/careplan-review',
+  // M5 services — overall normal/abnormal interpretation of a DiagnosticReport
+  // (DiagnosticReport has no first-class interpretation field in FHIR R4).
+  RESULT_INTERPRETATION: 'https://hphii.ma/fhir/result-interpretation',
 } as const;
 
 /* ============================================================
@@ -194,6 +197,48 @@ export const CarePlanReviewStatus = {
 } as const;
 export type CarePlanReviewStatus =
   (typeof CarePlanReviewStatus)[keyof typeof CarePlanReviewStatus];
+
+/* ============================================================
+ * §2 — M5 Services médico-techniques: lab/imaging category + pharmacy stock
+ * ========================================================== */
+/**
+ * The technical service a ServiceRequest/DiagnosticReport belongs to. Maps to a
+ * SNOMED CT category coding at the gateway (laboratory 108252007, imaging
+ * 363679005); this value set is the gateway/UI-facing discriminator.
+ */
+export const ServiceCategory = {
+  LABORATORY: 'laboratory',
+  IMAGING: 'imaging',
+} as const;
+export type ServiceCategory = (typeof ServiceCategory)[keyof typeof ServiceCategory];
+
+export const ServiceCategoryLabels: Record<ServiceCategory, string> = {
+  laboratory: 'Laboratoire',
+  imaging: 'Imagerie',
+};
+
+/** SNOMED CT category code per service category (for ServiceRequest.category). */
+export const ServiceCategorySnomed: Record<ServiceCategory, string> = {
+  laboratory: '108252007', // Laboratory procedure
+  imaging: '363679005', // Imaging
+};
+
+/**
+ * Simulated pharmacy stock state for a MedicationRequest (PoC only — there is no
+ * real inventory system). Derived deterministically from the medication label.
+ */
+export const StockStatus = {
+  IN_STOCK: 'in-stock',
+  LOW_STOCK: 'low-stock',
+  OUT_OF_STOCK: 'out-of-stock',
+} as const;
+export type StockStatus = (typeof StockStatus)[keyof typeof StockStatus];
+
+export const StockStatusLabels: Record<StockStatus, string> = {
+  'in-stock': 'En stock',
+  'low-stock': 'Stock faible',
+  'out-of-stock': 'Rupture de stock',
+};
 
 /* ============================================================
  * §6 — The 5 RBAC roles (code → French label)

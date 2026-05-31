@@ -19,6 +19,7 @@ export class InAppNotificationChannel implements NotificationChannel {
       kind: notification.kind,
       at: new Date().toISOString(),
       detectedIssueId: notification.detectedIssueId,
+      diagnosticReportId: notification.diagnosticReportId,
       patient: notification.patient,
       severity: notification.severity,
       urgent: notification.urgent,

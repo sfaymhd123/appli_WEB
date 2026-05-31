@@ -14,6 +14,8 @@ export interface ClinicalNotification {
   body: string;
   /** DetectedIssue logical id, for the in-app event. */
   detectedIssueId?: string;
+  /** DiagnosticReport logical id, for the in-app event (M5 abnormal results). */
+  diagnosticReportId?: string;
   /** Patient reference, e.g. "Patient/123". */
   patient?: string;
   /** Severity (high/moderate/low). */
