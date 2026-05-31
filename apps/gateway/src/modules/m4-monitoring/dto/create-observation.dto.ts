@@ -31,4 +31,14 @@ export class CreateObservationDto {
   @IsOptional()
   @IsISO8601()
   effectiveDateTime?: string;
+
+  /**
+   * Stable, client-generated request id for offline-first idempotency (§8). When
+   * present it is stored as an Observation.identifier and the write is performed
+   * via conditional create, so a reading queued offline and replayed on
+   * reconnect upserts instead of duplicating (and never re-fires its alert).
+   */
+  @IsOptional()
+  @IsString()
+  clientRequestId?: string;
 }

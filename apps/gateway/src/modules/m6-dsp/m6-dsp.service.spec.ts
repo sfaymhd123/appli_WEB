@@ -1,5 +1,5 @@
 import type { Bundle, DocumentReference, Resource } from 'fhir/r4';
-import { HphiiUrls, Role } from '@hphii/fhir-domain';
+import { ALL_ROLES, allowedResourcesForRole, HphiiUrls, Role } from '@hphii/fhir-domain';
 
 import type { FhirService } from '../../core/fhir';
 import { M6DspService } from './m6-dsp.service';
@@ -100,6 +100,25 @@ describe('M6DspService', () => {
       expect(tag?.system).toBe(HphiiUrls.RBAC_FILTER);
       expect(tag?.code).toBe(Role.PHYSICIAN);
       expect(bundle.total).toBe(bundle.entry?.length);
+    });
+
+    // Exhaustive guard: for EVERY role the filtered bundle must contain exactly
+    // the resource types the §6 domain filter allows — nothing more (no PHI leak),
+    // nothing less. Source-of-truth is allowedResourcesForRole, so this fails if
+    // the gateway filter and the domain matrix ever drift apart.
+    describe.each(ALL_ROLES)('role %s bundle obeys allowedResourcesForRole', (role) => {
+      it('contains exactly the allowed types (the everything bundle has one of each)', async () => {
+        const bundle = await service.getRecord('p1', role);
+        const expected = [...allowedResourcesForRole(role)].sort();
+        expect(typesIn(bundle)).toEqual(expected);
+      });
+
+      it('leaks no resource type outside the role filter', async () => {
+        const bundle = await service.getRecord('p1', role);
+        const allowed = new Set<string>(allowedResourcesForRole(role));
+        const leaked = typesIn(bundle).filter((type) => !allowed.has(type));
+        expect(leaked).toEqual([]);
+      });
     });
   });
 

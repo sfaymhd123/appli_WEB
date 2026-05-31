@@ -81,16 +81,53 @@ export class M2TriageService {
     const now = new Date().toISOString();
     const summary = result.findings.map((f) => f.detail).join(' ');
 
-    const encounter = await this.fhir.create(
-      EncounterHelper.build({
-        status: 'triaged',
-        class: encounterClass(result.priority),
-        subject: { reference: patientRef },
-        period: { start: now },
-        reasonCode: dto.complaint ? [{ text: dto.complaint }] : undefined,
-        extension: [priorityExtension(result.priority)],
-      }),
-    );
+    const encounterResource = EncounterHelper.build({
+      status: 'triaged',
+      class: encounterClass(result.priority),
+      subject: { reference: patientRef },
+      period: { start: now },
+      reasonCode: dto.complaint ? [{ text: dto.complaint }] : undefined,
+      extension: [priorityExtension(result.priority)],
+    });
+
+    // §8 offline-first idempotency: a triage queued offline and replayed on
+    // reconnect carries a stable client-request-id. Conditional-create keys the
+    // Encounter on it so the replay matches the original instead of duplicating
+    // the Encounter, its Task, and (for P1) the critical alert + SMS.
+    let encounter: Encounter;
+    let createdNew = true;
+    if (dto.clientRequestId) {
+      encounterResource.identifier = [
+        { system: HphiiUrls.CLIENT_REQUEST_ID, value: dto.clientRequestId },
+      ];
+      const outcome = await this.fhir.conditionalCreate(
+        encounterResource,
+        `identifier=${HphiiUrls.CLIENT_REQUEST_ID}|${dto.clientRequestId}`,
+      );
+      encounter = outcome.resource;
+      createdNew = outcome.created;
+    } else {
+      encounter = await this.fhir.create(encounterResource);
+    }
+
+    // Replay matched an existing triage Encounter: return its original Task and do
+    // not re-fire the P1 alert/SMS — the first pass already raised it, so no alert
+    // is lost (§8). Only the degenerate "Encounter exists but Task missing" case
+    // falls through to recreate the Task (still suppressing the one-shot alert).
+    if (!createdNew) {
+      const existingTask = await this.findLinkedTask(encounter.id);
+      if (existingTask) {
+        this.logger.log(`Triage replay matched Encounter/${encounter.id ?? '?'} (deduplicated)`);
+        return {
+          priority: result.priority,
+          critical: result.critical,
+          findings: result.findings,
+          encounter,
+          task: existingTask,
+          deduplicated: true,
+        };
+      }
+    }
 
     const task = await this.fhir.create(
       TaskHelper.build({
@@ -114,9 +151,11 @@ export class M2TriageService {
       encounter,
       task,
     };
+    if (!createdNew) response.deduplicated = true;
 
     // §8: P1 (critical, ~7.8%) auto-creates a high DetectedIssue + SMS to the nurse.
-    if (result.critical) {
+    // Suppressed on a replay match — the original triage already alerted.
+    if (result.critical && createdNew) {
       response.alert = await this.createCriticalAlert(patientRef, result.findings);
     }
     return response;
@@ -206,6 +245,18 @@ export class M2TriageService {
       `P1 triage raised DetectedIssue/${detectedIssue.id ?? '?'} + SMS to referring nurse via ${sms.provider}`,
     );
     return { detectedIssue, sms };
+  }
+
+  /** First Task whose focus is this Encounter (the triage Task), if any. */
+  private async findLinkedTask(encounterId: string | undefined): Promise<Task | undefined> {
+    if (!encounterId) return undefined;
+    const bundle = await this.fhir.search<Task>('Task', {
+      focus: `Encounter/${encounterId}`,
+      _count: 5,
+    });
+    return (bundle.entry ?? [])
+      .map((entry) => entry.resource)
+      .find((resource): resource is Task => TaskHelper.is(resource));
   }
 
   /** Update Task(s) whose focus is this Encounter to match a priority/outcome change. */

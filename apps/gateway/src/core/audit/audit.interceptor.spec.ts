@@ -64,4 +64,64 @@ describe('AuditInterceptor', () => {
 
     expect(create).not.toHaveBeenCalled();
   });
+
+  it('fires exactly once and anchors a create to the request body patientId', async () => {
+    const { service, create, mirrorCreate } = makeAudit();
+    const reflector = { getAllAndOverride: () => 'C' } as unknown as Reflector;
+    const interceptor = new AuditInterceptor(reflector, service);
+
+    // POST /triage style: no route param, patientId is in the body.
+    const req = {
+      user: { sub: 'nurse-1', role: 'Nurse', email: 'inf@hphii.ma' },
+      body: { patientId: 'pat-7', systolicBp: 150 },
+    };
+    const next: CallHandler = {
+      handle: () => of({ priority: 'P2', encounter: { resourceType: 'Encounter', id: 'enc-1' } }),
+    };
+
+    await lastValueFrom(interceptor.intercept(makeContext(req), next));
+    await drainMicrotasks();
+
+    expect(create).toHaveBeenCalledTimes(1);
+    const event = create.mock.calls[0][0] as AuditEvent;
+    expect(event.action).toBe('C');
+    expect(event.entity?.[0]?.what?.reference).toBe('Patient/pat-7');
+    expect(event.agent?.[0]?.type?.coding?.[0]?.code).toBe('Nurse');
+    expect(mirrorCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('anchors to a response subject reference when no param/body id exists', async () => {
+    const { service, create } = makeAudit();
+    const reflector = { getAllAndOverride: () => 'U' } as unknown as Reflector;
+    const interceptor = new AuditInterceptor(reflector, service);
+
+    // PUT /triage/:id returns an Encounter carrying the patient under subject.
+    const req = { user: { sub: 'doc-1', role: 'Physician', email: 'doc@hphii.ma' }, params: {} };
+    const next: CallHandler = {
+      handle: () =>
+        of({ resourceType: 'Encounter', id: 'enc-9', subject: { reference: 'Patient/pat-42' } }),
+    };
+
+    await lastValueFrom(interceptor.intercept(makeContext(req), next));
+    await drainMicrotasks();
+
+    expect(create).toHaveBeenCalledTimes(1);
+    const event = create.mock.calls[0][0] as AuditEvent;
+    expect(event.entity?.[0]?.what?.reference).toBe('Patient/pat-42');
+  });
+
+  it('records nothing when no audit entity can be resolved', async () => {
+    const { service, create } = makeAudit();
+    const reflector = { getAllAndOverride: () => 'R' } as unknown as Reflector;
+    const interceptor = new AuditInterceptor(reflector, service);
+
+    // Authenticated + @Audit, but neither params, body, nor response carry a subject.
+    const req = { user: { sub: 'u9', role: 'Admin', email: 'admin@hphii.ma' }, params: {} };
+    const next: CallHandler = { handle: () => of({ total: 0, items: [] }) };
+
+    await lastValueFrom(interceptor.intercept(makeContext(req), next));
+    await drainMicrotasks();
+
+    expect(create).not.toHaveBeenCalled();
+  });
 });

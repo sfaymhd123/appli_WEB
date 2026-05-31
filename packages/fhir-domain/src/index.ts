@@ -35,6 +35,10 @@ export const HphiiUrls = {
   ESCALATION_TIMER_MINUTES: 'https://hphii.ma/fhir/escalation-timer-minutes',
   RBAC_ROLES: 'https://hphii.ma/fhir/rbac-roles',
   RBAC_FILTER: 'https://hphii.ma/fhir/rbac-filter',
+  // Offline-first idempotency (CLAUDE.md §8): a stable, client-generated request
+  // id carried as a resource identifier so a queued write replayed after a
+  // reconnect upserts (conditional create) instead of duplicating.
+  CLIENT_REQUEST_ID: 'https://hphii.ma/fhir/client-request-id',
   // M2 triage (P1..P5) — not a FHIR R4 concept, modelled as a named extension.
   TRIAGE_PRIORITY: 'https://hphii.ma/fhir/triage-priority',
   TRIAGE_OUTCOME: 'https://hphii.ma/fhir/triage-outcome',

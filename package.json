@@ -9,6 +9,10 @@
     "apps/*"
   ],
   "scripts": {
+    "dev:up": "node scripts/dev-up.mjs",
+    "setup": "node scripts/dev-up.mjs --no-apps",
+    "seed:users": "npm run db:seed --workspace @hphii/gateway",
+    "seed:cohort": "cd tools/seed && python seed.py --xlsx ../../data/Telehealth_Framework_Complete.xlsx --fhir-base http://localhost:8080/fhir",
     "build:domain": "npm run build --workspace @hphii/fhir-domain",
     "gateway:dev": "npm run start:dev --workspace @hphii/gateway",
     "gateway:build": "npm run build --workspace @hphii/gateway",

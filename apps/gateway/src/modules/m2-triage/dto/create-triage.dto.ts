@@ -39,4 +39,14 @@ export class CreateTriageDto {
   @IsOptional()
   @IsString()
   complaint?: string;
+
+  /**
+   * Stable, client-generated request id for offline-first idempotency (§8). When
+   * present it is stored as an Encounter.identifier and the triage Encounter is
+   * created conditionally, so an assessment queued offline and replayed on
+   * reconnect upserts instead of creating a duplicate Encounter/Task/alert.
+   */
+  @IsOptional()
+  @IsString()
+  clientRequestId?: string;
 }

@@ -18,6 +18,12 @@ export interface TriageResponse {
   task: Task;
   /** Present only for P1 (critical) triage. */
   alert?: TriageAlert;
+  /**
+   * True when a client-request-id matched an existing triage Encounter (offline
+   * replay): the Encounter/Task were not duplicated and no new P1 alert/SMS was
+   * fired (§8). The previously created Task is returned as-is.
+   */
+  deduplicated?: boolean;
 }
 
 /** A row in the triage queue. */

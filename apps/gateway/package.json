@@ -11,9 +11,11 @@
     "start:prod": "node dist/main",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
     "gen:keys": "node scripts/generate-jwt-keys.mjs",
     "prisma:generate": "dotenv -e ../../.env -- prisma generate",
     "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "prisma:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
     "prisma:push": "dotenv -e ../../.env -- prisma db push",
     "db:seed": "dotenv -e ../../.env -- ts-node prisma/seed.ts"
   },

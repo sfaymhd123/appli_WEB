@@ -31,6 +31,11 @@ export interface ObservationResult {
   alert?: AlertSummary;
   /** True when the value triggered a CarePlan-review event (HbA1c > 7). */
   careplanReview?: boolean;
+  /**
+   * True when a client-request-id matched an existing Observation (offline replay):
+   * the reading was not duplicated and no new alert/timer was fired (§8).
+   */
+  deduplicated?: boolean;
   /** Channels the alert notification reached. */
   notification?: {
     channels: string[];

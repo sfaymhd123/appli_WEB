@@ -11,6 +11,8 @@ export interface CreateObservationRequest {
   value: number;
   source?: ObservationSource;
   effectiveDateTime?: string;
+  /** Offline-replay idempotency key (CLAUDE.md §8); set by the submit hook. */
+  clientRequestId?: string;
 }
 
 /** PHI-light projection of a DetectedIssue alert (mirrors gateway AlertSummary). */
@@ -50,6 +52,8 @@ export interface ObservationResult {
   /** True when the value triggered a CarePlan-review event (HbA1c > 7). */
   careplanReview?: boolean;
   notification?: NotificationDispatch;
+  /** True when an offline replay matched an existing reading (no duplicate/alert). */
+  deduplicated?: boolean;
 }
 
 export interface VitalsPoint {

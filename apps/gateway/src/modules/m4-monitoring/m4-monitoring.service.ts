@@ -64,9 +64,32 @@ export class M4MonitoringService {
     const patientRef = `Patient/${dto.patientId}`;
     const effectiveDateTime = dto.effectiveDateTime ?? new Date().toISOString();
 
-    const observation = await this.fhir.create(
-      buildObservationResource({ spec, patientRef, value: dto.value, effectiveDateTime, sex }),
-    );
+    const resource = buildObservationResource({
+      spec,
+      patientRef,
+      value: dto.value,
+      effectiveDateTime,
+      sex,
+    });
+
+    // Offline-first idempotency (§8): when the client supplies a stable request
+    // id, stamp it as an identifier and conditionally create. A replay matches
+    // the existing Observation (created=false) and skips all one-shot effects.
+    let observation: Observation;
+    let isNew = true;
+    if (dto.clientRequestId) {
+      resource.identifier = [
+        { system: HphiiUrls.CLIENT_REQUEST_ID, value: dto.clientRequestId },
+      ];
+      const outcome = await this.fhir.conditionalCreate(
+        resource,
+        `identifier=${HphiiUrls.CLIENT_REQUEST_ID}|${dto.clientRequestId}`,
+      );
+      observation = outcome.resource;
+      isNew = outcome.created;
+    } else {
+      observation = await this.fhir.create(resource);
+    }
 
     const evaluation = evaluateThreshold(spec, dto.value, sex);
     const result: ObservationResult = {
@@ -74,6 +97,13 @@ export class M4MonitoringService {
       breached: evaluation.breached,
       severity: evaluation.severity,
     };
+
+    // A replayed (already-recorded) reading is acknowledged but never re-alerted.
+    if (!isNew) {
+      result.deduplicated = true;
+      this.logger.log(`Observation replay deduplicated (clientRequestId match) for ${patientRef}`);
+      return result;
+    }
 
     if (evaluation.breached && evaluation.severity) {
       const raised = await this.raiseAlert(spec, patientRef, evaluation.severity);

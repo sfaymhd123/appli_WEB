@@ -50,6 +50,34 @@ export class FhirService {
     }
   }
 
+  /**
+   * Idempotent create via FHIR conditional-create (`If-None-Exist`). HAPI runs
+   * the supplied search; if it matches an existing resource it returns that one
+   * (HTTP 200) instead of inserting a duplicate, otherwise it creates (HTTP 201).
+   * Used for offline-replay safety (CLAUDE.md §8): a queued write carrying a
+   * stable client-request-id identifier upserts rather than duplicates.
+   *
+   * @param ifNoneExist a FHIR search query, e.g. `identifier=<system>|<value>`.
+   * @returns the resource plus whether it was newly created (so callers can skip
+   *          one-shot side effects — alerts, SMS, timers — on a replay).
+   */
+  async conditionalCreate<T extends Resource>(
+    resource: T,
+    ifNoneExist: string,
+  ): Promise<{ resource: T; created: boolean }> {
+    const type = resource.resourceType;
+    try {
+      const { data, status } = await this.http.post<T>(`/${type}`, resource, {
+        headers: { Prefer: 'return=representation', 'If-None-Exist': ifNoneExist },
+      });
+      const created = status === 201;
+      this.logger.log(`POST /${type} (conditional) -> ${status} (${created ? 'created' : 'matched'})`);
+      return { resource: data, created };
+    } catch (error) {
+      throw this.fail('POST', `/${type} (conditional)`, error);
+    }
+  }
+
   async read<T extends Resource>(resourceType: string, id: string): Promise<T> {
     try {
       const { data, status } = await this.http.get<T>(`/${resourceType}/${id}`);

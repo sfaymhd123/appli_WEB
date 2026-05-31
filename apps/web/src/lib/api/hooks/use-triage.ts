@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Encounter } from 'fhir/r4';
 import { api } from '../axios';
+import { postOrQueue, type SubmitResult } from '../../offline';
 import type {
   TriageQueueResult,
   TriageRequest,
@@ -24,16 +25,23 @@ export function useTriageQueue() {
   });
 }
 
-/** Submit a triage assessment → Encounter + Task (+ P1 alert). */
+/**
+ * Submit a triage assessment → Encounter + Task (+ P1 alert). Offline-first
+ * (§8): when the device is offline (or the network drops mid-request) the write
+ * is queued in IndexedDB with a stable clientRequestId and replayed on reconnect;
+ * the result then reports `queued: true` instead of a server response.
+ */
 export function useSubmitTriage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: TriageRequest): Promise<TriageResponse> => {
-      const { data } = await api.post<TriageResponse>('/triage', body);
-      return data;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: triageKeys.all });
+    mutationFn: (body: TriageRequest): Promise<SubmitResult<TriageResponse>> =>
+      postOrQueue<TriageResponse, TriageRequest>({
+        url: '/triage',
+        body,
+        label: `Triage ${body.patientId}`,
+      }),
+    onSuccess: (result) => {
+      if (!result.queued) void queryClient.invalidateQueries({ queryKey: triageKeys.all });
     },
   });
 }

@@ -65,12 +65,22 @@ export function SmsIntakePage() {
 
     pushMessage('out', `${metricLabel(metric)} : ${value.trim()} ${metricUnit(metric)}`);
     try {
-      const result = await submit.mutateAsync({
+      const outcome = await submit.mutateAsync({
         patientId: id,
         metric,
         value: numeric,
         source: 'sms',
       });
+      if (outcome.queued) {
+        pushMessage(
+          'in',
+          `Mesure enregistrée hors ligne (${metricLabel(metric)} ${numeric} ${metricUnit(metric)}). Elle sera transmise dès le retour du réseau.`,
+        );
+        setValue('');
+        toast('Mesure enregistrée hors ligne — synchronisation à la reconnexion.', 'info');
+        return;
+      }
+      const result = outcome.data;
       pushMessage('in', replyFor(result, metric, numeric));
       setValue('');
       if (result.alert) {

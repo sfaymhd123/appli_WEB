@@ -46,7 +46,7 @@ export function TriagePage() {
       return;
     }
     try {
-      const result = await submit.mutateAsync({
+      const outcome = await submit.mutateAsync({
         patientId: patientId.trim(),
         systolicBp: toNum(systolicBp),
         diastolicBp: toNum(diastolicBp),
@@ -55,6 +55,11 @@ export function TriagePage() {
         symptomSeverity: (symptomSeverity || undefined) as SymptomSeverity | undefined,
         complaint: complaint.trim() || undefined,
       });
+      if (outcome.queued) {
+        toast('Triage enregistré hors ligne — il sera synchronisé à la reconnexion.', 'info');
+        return;
+      }
+      const result = outcome.data;
       toast(
         result.critical
           ? `Priorité ${result.priority} — alerte critique déclenchée.`
@@ -66,7 +71,9 @@ export function TriagePage() {
     }
   }
 
-  const result = submit.data;
+  // Only a live (non-queued) submission yields a server result to display.
+  const submitted = submit.data;
+  const result = submitted && !submitted.queued ? submitted.data : undefined;
 
   const columns: Column<TriageQueueEntry>[] = [
     {

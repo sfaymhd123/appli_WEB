@@ -10,6 +10,8 @@ export interface TriageRequest {
   glucose?: number;
   symptomSeverity?: SymptomSeverity;
   complaint?: string;
+  /** Offline-replay idempotency key (CLAUDE.md §8); set by the submit hook. */
+  clientRequestId?: string;
 }
 
 export interface TriageFinding {
@@ -38,6 +40,8 @@ export interface TriageResponse {
   task: Task;
   /** Present only for P1 (critical) triage. */
   alert?: TriageAlert;
+  /** True when an offline replay matched an existing triage (no duplicate/alert). */
+  deduplicated?: boolean;
 }
 
 export interface TriageQueueEntry {
