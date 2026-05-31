@@ -24,6 +24,7 @@ import { M3ParcoursModule } from './modules/m3-parcours/m3-parcours.module';
 import { M4MonitoringModule } from './modules/m4-monitoring/m4-monitoring.module';
 import { M5ServicesModule } from './modules/m5-services/m5-services.module';
 import { M6DspModule } from './modules/m6-dsp/m6-dsp.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { M6DspModule } from './modules/m6-dsp/m6-dsp.module';
     M4MonitoringModule,
     M5ServicesModule,
     M6DspModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController],
   providers: [

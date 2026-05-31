@@ -14,6 +14,7 @@ import { TriagePage } from './features/triage/triage-page';
 import { MonitoringDashboardPage } from './features/monitoring/monitoring-dashboard-page';
 import { SmsIntakePage } from './features/monitoring/sms-intake-page';
 import { ServicesPage } from './features/services/services-page';
+import { AnalyticsPage } from './features/analytics/analytics-page';
 import { ProtectedRoute, RequireResource, RequireRole } from './routes/protected-route';
 
 export default function App() {
@@ -119,6 +120,15 @@ export default function App() {
           element={
             <RequireRole roles={[Role.PHYSICIAN, Role.PHARMACIST, Role.LAB_TECHNICIAN]}>
               <ServicesPage />
+            </RequireRole>
+          }
+        />
+        {/* Analytics — balanced-scorecard KPIs (admin + physician). */}
+        <Route
+          path="/analytics"
+          element={
+            <RequireRole roles={[Role.ADMIN, Role.PHYSICIAN]}>
+              <AnalyticsPage />
             </RequireRole>
           }
         />

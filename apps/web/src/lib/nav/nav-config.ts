@@ -98,6 +98,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: [Role.PHYSICIAN, Role.PHARMACIST, Role.LAB_TECHNICIAN],
   },
   {
+    to: '/analytics',
+    label: 'Analytique (KPI)',
+    module: 'KPI',
+    description:
+      'Tableau de bord équilibré : cohorte, parcours, triage, alertes et accès au DSP.',
+    roles: [Role.ADMIN, Role.PHYSICIAN],
+  },
+  {
     to: '/audit',
     label: 'Journal d’audit',
     module: 'M6',
