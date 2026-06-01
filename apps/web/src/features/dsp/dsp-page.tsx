@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { allowedResourcesForRole } from '@hphii/fhir-domain';
-import type { FhirResource } from 'fhir/r4';
+import type { DocumentReference, FhirResource } from 'fhir/r4';
 import {
   Badge,
   Button,
@@ -8,6 +9,7 @@ import {
   CardBody,
   CardHeader,
   EmptyState,
+  Modal,
   Spinner,
   Table,
   useToast,
@@ -31,12 +33,29 @@ import {
   roleLabel,
   shortDateTime,
 } from './dsp-display';
+import { downloadDspPdf } from './dsp-pdf';
+
+/** Decode base64 UTF-8 string (PoC helper). */
+function decodeBase64Utf8(base64: string): string {
+  try {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i += 1) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
+  } catch {
+    return '(Erreur de décodage du contenu)';
+  }
+}
 
 export function DspPage() {
   const { patientId } = useParams<{ patientId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
   const role = user?.role;
+
+  const [viewingDoc, setViewingDoc] = useState<DocumentReference | null>(null);
 
   const record = useDspRecord(patientId);
   const auditAllowed = role ? canViewAudit(role) : false;
@@ -48,9 +67,16 @@ export function DspPage() {
     try {
       const doc = await exportDoc.mutateAsync({ patientId, body: {} });
       toast(`Résumé exporté : DocumentReference/${doc.id ?? '—'}.`, 'success');
+      // Auto-open the generated document for immediate feedback.
+      if (doc.resourceType === 'DocumentReference') setViewingDoc(doc);
     } catch (error) {
       toast(errorMessage(error), 'error');
     }
+  }
+
+  function onDownloadPdf() {
+    if (!patientId || !record.data) return;
+    downloadDspPdf(patientId, record.data);
   }
 
   if (!patientId) {
@@ -101,11 +127,18 @@ export function DspPage() {
           title={`Vue filtrée pour le rôle : ${roleLabel(role)}`}
           description="Le filtrage est appliqué dynamiquement par la passerelle selon votre rôle ; les sections non autorisées ne sont pas renvoyées."
           action={
-            role && canExportRecord(role) ? (
-              <Button variant="secondary" onClick={onExport} loading={exportDoc.isPending}>
-                Exporter un résumé
-              </Button>
-            ) : undefined
+            <div className="flex gap-2">
+              {record.data && (
+                <Button variant="secondary" onClick={onDownloadPdf}>
+                  Télécharger PDF complet
+                </Button>
+              )}
+              {role && canExportRecord(role) && (
+                <Button variant="secondary" onClick={onExport} loading={exportDoc.isPending}>
+                  Générer résumé
+                </Button>
+              )}
+            </div>
           }
         />
         <CardBody className="space-y-3">
@@ -151,7 +184,11 @@ export function DspPage() {
             <CardBody>
               <ul className="divide-y divide-gray-100">
                 {section.resources.map((resource, index) => (
-                  <ResourceRow key={resource.id ?? `${section.type}-${index}`} resource={resource} />
+                  <ResourceRow
+                    key={resource.id ?? `${section.type}-${index}`}
+                    resource={resource}
+                    onView={(r) => setViewingDoc(r)}
+                  />
                 ))}
               </ul>
             </CardBody>
@@ -195,11 +232,53 @@ export function DspPage() {
           </CardBody>
         </Card>
       )}
+
+      {/* Document Viewer Modal */}
+      <Modal
+        open={!!viewingDoc}
+        onClose={() => setViewingDoc(null)}
+        title={viewingDoc?.content?.[0]?.attachment?.title ?? 'Document'}
+        footer={
+          <div className="flex w-full items-center justify-between">
+            {viewingDoc?.content?.[0]?.attachment?.data && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const data = viewingDoc.content![0].attachment!.data!;
+                  const blob = new Blob([decodeBase64Utf8(data)], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${viewingDoc.content![0].attachment!.title || 'document'}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Télécharger (.txt)
+              </Button>
+            )}
+            <Button onClick={() => setViewingDoc(null)}>Fermer</Button>
+          </div>
+        }
+      >
+        <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-4 font-mono text-sm text-gray-700">
+          {viewingDoc?.content?.[0]?.attachment?.data
+            ? decodeBase64Utf8(viewingDoc.content[0].attachment.data)
+            : 'Aucun contenu.'}
+        </div>
+      </Modal>
     </div>
   );
 }
 
-function ResourceRow({ resource }: { resource: FhirResource }) {
+function ResourceRow({
+  resource,
+  onView,
+}: {
+  resource: FhirResource;
+  onView?: (r: DocumentReference) => void;
+}) {
+  const isDocument = resource.resourceType === 'DocumentReference';
   return (
     <li className="flex items-start justify-between gap-3 py-2.5">
       <div className="min-w-0">
@@ -208,7 +287,19 @@ function ResourceRow({ resource }: { resource: FhirResource }) {
           {resource.resourceType}/{resource.id ?? '—'}
         </p>
       </div>
-      <span className="shrink-0 text-xs text-gray-500">{shortDateTime(resourceTimestamp(resource))}</span>
+      <div className="flex shrink-0 items-center gap-3">
+        {isDocument && onView && (
+          <button
+            type="button"
+            onClick={() => onView(resource as DocumentReference)}
+            className="text-xs font-semibold text-clinical-600 hover:underline"
+          >
+            Voir
+          </button>
+        )}
+        <span className="text-xs text-gray-500">{shortDateTime(resourceTimestamp(resource))}</span>
+      </div>
     </li>
   );
 }
+

@@ -55,6 +55,7 @@ export interface MedicationRequestInput {
   code?: string;
   system?: string;
   dosageInstruction: string;
+  priority?: MedicationRequest['priority'];
   quantity?: number;
   quantityUnit?: string;
   note?: string;
@@ -75,6 +76,7 @@ export function buildMedicationRequestResource(input: MedicationRequestInput): M
     intent: 'order',
     subject: { reference: input.patientRef },
     medicationCodeableConcept,
+    priority: input.priority,
     authoredOn: input.authoredOn,
     dosageInstruction: [{ text: input.dosageInstruction }],
   });
@@ -319,6 +321,7 @@ export function projectPrescription(resource: MedicationRequest): PrescriptionSu
     patientReference: resource.subject?.reference,
     status: resource.status ?? 'unknown',
     intent: resource.intent,
+    priority: resource.priority,
     medication,
     dosageInstruction: resource.dosageInstruction?.[0]?.text,
     quantity: resource.dispenseRequest?.quantity?.value,

@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import type { AuditEvent, Bundle, DetectedIssue, DiagnosticReport, Encounter, FhirResource } from 'fhir/r4';
+import type { AuditEvent, Bundle, DetectedIssue, DiagnosticReport, Encounter, FhirResource, Patient } from 'fhir/r4';
 import { AcknowledgementStatus, HphiiUrls, Role } from '@hphii/fhir-domain';
 
 import type { FhirService } from '../../core/fhir';
@@ -22,9 +22,15 @@ function searchset(resources: FhirResource[]): Bundle {
 }
 
 /** A count-only Bundle (the shape `_summary=count` returns). */
-function countset(total: number): Bundle {
-  return { resourceType: 'Bundle', type: 'searchset', total };
-}
+const countset = (total: number): Bundle => ({ resourceType: 'Bundle', type: 'searchset', total });
+
+const patient = (zone?: string, risk?: string): Patient => ({
+  resourceType: 'Patient',
+  extension: [
+    ...(zone ? [{ url: HphiiUrls.ZONE_TYPE, valueString: zone }] : []),
+    ...(risk ? [{ url: HphiiUrls.RISK_GROUP, valueString: risk }] : []),
+  ],
+});
 
 const encounter = (priority?: string): Encounter => ({
   resourceType: 'Encounter',
@@ -76,6 +82,12 @@ function liveSearch(): jest.Mock {
   return jest.fn(async (type: string, params: Record<string, unknown> = {}) => {
     if (params._summary === 'count') return countset(LIVE_COUNTS[type] ?? 0);
     switch (type) {
+      case 'Patient':
+        return searchset([
+          patient('Rural', 'Elderly'),
+          patient('Rural', 'Chronic-risk'),
+          patient('Urban', 'Standard'),
+        ]);
       case 'Encounter':
         // 2×P1, 1×P3, plus one un-triaged Encounter (no priority extension).
         return searchset([encounter('P1'), encounter('P1'), encounter('P3'), encounter()]);
@@ -117,6 +129,15 @@ describe('AnalyticsService', () => {
 
       expect(kpis.source).toBe('live');
       expect(kpis.cohortSize).toBe(3);
+
+      // demographics: 2 Rural, 1 Urban; 1 Elderly, 1 Chronic-risk, 1 Standard
+      expect(kpis.demographics.byZone).toMatchObject({ Rural: 2, Urban: 1, 'Peri-urban': 0 });
+      expect(kpis.demographics.byRiskGroup).toMatchObject({
+        Elderly: 1,
+        'Chronic-risk': 1,
+        Standard: 1,
+        Pediatric: 0,
+      });
 
       // pathway: chronic=CarePlan(2), episodic=Encounter(5) → 7 total
       expect(kpis.pathwayMix).toMatchObject({
@@ -177,6 +198,10 @@ describe('AnalyticsService', () => {
       source: 'seed',
       generatedAt: '2026-05-30T15:40:00+00:00',
       cohortSize: 371,
+      demographics: {
+        byZone: { Rural: 100, Urban: 200, 'Peri-urban': 71 },
+        byRiskGroup: { Standard: 200, 'Chronic-risk': 100, Elderly: 50, Pediatric: 21 },
+      },
       pathwayMix: { chronic: 232, episodic: 299, total: 531, chronicPct: 43.7, episodicPct: 56.3 },
       triage: { byPriority: { P1: 51, P2: 140, P3: 303, P4: 164, P5: 0 }, total: 658, criticalPct: 7.8 },
       monitoring: { observations: 10440 },

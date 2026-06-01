@@ -13,7 +13,7 @@ const SERVICE_CATEGORIES = [ServiceCategory.LABORATORY, ServiceCategory.IMAGING]
 
 /**
  * POST /diagnostic-reports — a Lab-Technician records a result for an ordered
- * study (CLAUDE.md §6: "Add biological result" — Lab-Technician only). The
+ * study (ARCH.md §6: "Add biological result" — Lab-Technician only). The
  * result is LOINC-coded; an abnormal flag may be set explicitly, otherwise it is
  * derived from the §7 thresholds for a known LOINC + numeric value.
  *
@@ -35,7 +35,7 @@ export class CreateDiagnosticReportDto {
   @IsIn(SERVICE_CATEGORIES)
   category!: ServiceCategory;
 
-  /** LOINC code of the measured analyte/study (CLAUDE.md §5/§7). */
+  /** LOINC code of the measured analyte/study (ARCH.md §5/§7). */
   @IsString()
   @MinLength(1)
   @MaxLength(64)

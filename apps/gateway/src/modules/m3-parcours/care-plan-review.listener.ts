@@ -6,7 +6,7 @@ import { M3ParcoursService } from './m3-parcours.service';
 
 /**
  * Bridges M4 → M3: when the monitoring engine emits `careplan.review-needed`
- * (HbA1c > 7, CLAUDE.md §8), mark the patient's active CarePlan(s) for review.
+ * (HbA1c > 7, ARCH.md §8), mark the patient's active CarePlan(s) for review.
  * Subscribes to the in-process DomainEventBus; PHI-safe (refs + counts only).
  */
 @Injectable()

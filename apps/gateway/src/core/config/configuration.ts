@@ -1,6 +1,6 @@
 /**
  * Typed runtime configuration, loaded by @nestjs/config (see app.module.ts).
- * All values come from env vars (CLAUDE.md §9: secrets only via env).
+ * All values come from env vars (ARCH.md §9: secrets only via env).
  */
 export interface AppConfig {
   nodeEnv: string;
@@ -15,7 +15,7 @@ export interface AppConfig {
    * a live demo/test. Leave unset (0) in normal operation.
    */
   alertEscalationSeconds: number;
-  /** SMS destinations for alerts (CLAUDE.md §8). PoC defaults; override via env. */
+  /** SMS destinations for alerts (ARCH.md §8). PoC defaults; override via env. */
   referringNursePhone: string;
   seniorPhysicianPhone: string;
   /** SMS destination for M5 abnormal-result notifications to the ordering physician. */

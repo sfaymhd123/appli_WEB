@@ -14,7 +14,7 @@ import { ConditionInputDto } from './create-care-plan.dto';
 
 /**
  * Open an acute episode (M3b): an Encounter plus one or more encounter-diagnosis
- * Conditions (CLAUDE.md §2). `emergency` selects the Encounter.class.
+ * Conditions (ARCH.md §2). `emergency` selects the Encounter.class.
  */
 export class CreateEpisodeDto {
   @IsString()

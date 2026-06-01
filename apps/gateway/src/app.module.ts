@@ -5,7 +5,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import configuration from './core/config/configuration';
 import { HealthController } from './health/health.controller';
 
-// Core cross-cutting layers (CLAUDE.md §4).
+// Core cross-cutting layers (ARCH.md §4).
 import { PrismaModule } from './core/prisma/prisma.module';
 import { FhirModule } from './core/fhir/fhir.module';
 import { AuthModule } from './core/auth/auth.module';
@@ -17,7 +17,7 @@ import { AuditInterceptor } from './core/audit/audit.interceptor';
 import { EventsModule } from './core/events/events.module';
 import { SmsModule } from './core/sms/sms.module';
 
-// Functional modules M1..M6 (CLAUDE.md §2) — placeholders, filled in P5+.
+// Functional modules M1..M6 (ARCH.md §2) — placeholders, filled in P5+.
 import { M1AccueilModule } from './modules/m1-accueil/m1-accueil.module';
 import { M2TriageModule } from './modules/m2-triage/m2-triage.module';
 import { M3ParcoursModule } from './modules/m3-parcours/m3-parcours.module';

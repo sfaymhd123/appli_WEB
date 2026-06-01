@@ -3,9 +3,9 @@ import type { SmsMessage, SmsProvider, SmsSendResult } from './sms-provider.inte
 
 /**
  * Default SMS provider: writes the message to the application log instead of
- * sending it (CLAUDE.md §3 — pluggable, default logs to console).
+ * sending it (ARCH.md §3 — pluggable, default logs to console).
  *
- * PHI safety (CLAUDE.md §9): the destination is masked in logs, and callers
+ * PHI safety (ARCH.md §9): the destination is masked in logs, and callers
  * must keep message bodies free of patient identifiers/vitals — reference
  * resource ids only.
  */

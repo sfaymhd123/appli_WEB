@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Role } from '@hphii/fhir-domain';
 import {
   Badge,
   Button,
@@ -21,7 +22,9 @@ import {
   useVitalsTrend,
 } from '../../lib/api/hooks/use-monitoring';
 import type { AlertSummary, VitalsSeries } from '../../lib/api/types/monitoring';
+import { useAuth } from '../../lib/auth/auth-context';
 import { VitalsChart } from './vitals-chart';
+import { SmsLogViewer } from './sms-log-viewer';
 import {
   ACK_LABEL,
   ACK_TONE,
@@ -56,6 +59,7 @@ function groupByUnit(series: VitalsSeries[]): { unit: string; series: VitalsSeri
 
 export function MonitoringDashboardPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const alerts = useActiveAlerts();
   const acknowledge = useAcknowledgeAlert();
@@ -114,53 +118,63 @@ export function MonitoringDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Monitoring &amp; Alertes</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Module M4 — constantes (LOINC/UCUM), moteur de seuils (§7) et escalade automatique à
-          15 min (§8).
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Monitoring &amp; Alertes</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Module M4 — constantes (LOINC/UCUM), moteur de seuils (§7) et escalade automatique à
+            15 min (§8).
+          </p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader
-          title="Alertes actives"
-          description="Anomalies détectées non résolues, les plus récentes en tête. Actualisation live."
-          action={
-            <Badge tone={activeAlerts.length ? 'danger' : 'success'}>
-              {activeAlerts.length} active(s)
-            </Badge>
-          }
-        />
-        <CardBody>
-          {alerts.isLoading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" className="text-clinical-600" />
-            </div>
-          ) : alerts.isError ? (
-            <EmptyState title="Alertes indisponibles" description={errorMessage(alerts.error)} />
-          ) : activeAlerts.length === 0 ? (
-            <EmptyState
-              title="Aucune alerte active"
-              description="Les constantes hors seuil déclencheront ici une alerte avec compte à rebours d’escalade."
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader
+              title="Alertes actives"
+              description="Anomalies détectées non résolues, les plus récentes en tête. Actualisation live."
+              action={
+                <Badge tone={activeAlerts.length ? 'danger' : 'success'}>
+                  {activeAlerts.length} active(s)
+                </Badge>
+              }
             />
-          ) : (
-            <ul className="space-y-3">
-              {activeAlerts.map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  alert={alert}
-                  now={now}
-                  busy={acknowledge.isPending || resolve.isPending}
-                  onAcknowledge={() => onAcknowledge(alert.id)}
-                  onResolve={() => onResolve(alert.id)}
-                  onShowVitals={() => showPatientVitals(alert.patientReference)}
+            <CardBody>
+              {alerts.isLoading ? (
+                <div className="flex justify-center py-12">
+                  <Spinner size="lg" className="text-clinical-600" />
+                </div>
+              ) : alerts.isError ? (
+                <EmptyState title="Alertes indisponibles" description={errorMessage(alerts.error)} />
+              ) : activeAlerts.length === 0 ? (
+                <EmptyState
+                  title="Aucune alerte active"
+                  description="Les constantes hors seuil déclencheront ici une alerte avec compte à rebours d’escalade."
                 />
-              ))}
-            </ul>
-          )}
-        </CardBody>
-      </Card>
+              ) : (
+                <ul className="space-y-3">
+                  {activeAlerts.map((alert) => (
+                    <AlertCard
+                      key={alert.id}
+                      alert={alert}
+                      now={now}
+                      busy={acknowledge.isPending || resolve.isPending}
+                      onAcknowledge={() => onAcknowledge(alert.id)}
+                      onResolve={() => onResolve(alert.id)}
+                      onShowVitals={() => showPatientVitals(alert.patientReference)}
+                    />
+                  ))}
+                </ul>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          {user?.role === Role.ADMIN && <SmsLogViewer />}
+        </div>
+      </div>
 
       <Card>
         <CardHeader

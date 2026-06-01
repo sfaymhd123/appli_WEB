@@ -6,7 +6,7 @@ import type { AppConfig } from '../config/configuration';
 import { FHIR_HTTP_CLIENT } from './fhir.constants';
 
 /**
- * Builds the single axios instance every HAPI call goes through (CLAUDE.md §9).
+ * Builds the single axios instance every HAPI call goes through (ARCH.md §9).
  * Base URL comes from config (env only — never hard-coded).
  */
 export const fhirHttpProvider: Provider = {

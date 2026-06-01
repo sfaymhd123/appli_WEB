@@ -2,12 +2,13 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Role } from '@hphii/fhir-domain';
 import { LoginPage } from './features/auth/login-page';
 import { DashboardPage } from './features/dashboard/dashboard-page';
-import { ModulePlaceholderPage } from './features/placeholder/module-placeholder-page';
 import { PatientsListPage } from './features/patients/patients-list-page';
 import { PatientRegistrationPage } from './features/patients/patient-registration-page';
 import { PatientDetailPage } from './features/patients/patient-detail-page';
 import { DspEntryPage } from './features/dsp/dsp-entry-page';
 import { DspPage } from './features/dsp/dsp-page';
+import { DocumentsPage } from './features/dsp/documents-page';
+import { AuditTrailPage } from './features/dsp/audit-trail-page';
 import { PathwayEntryPage } from './features/pathway/pathway-entry-page';
 import { PathwayPage } from './features/pathway/pathway-page';
 import { TriagePage } from './features/triage/triage-page';
@@ -109,7 +110,7 @@ export default function App() {
           path="/documents"
           element={
             <RequireResource resource="DocumentReference">
-              <ModulePlaceholderPage />
+              <DocumentsPage />
             </RequireResource>
           }
         />
@@ -136,7 +137,7 @@ export default function App() {
           path="/audit"
           element={
             <RequireResource resource="AuditEvent">
-              <ModulePlaceholderPage />
+              <AuditTrailPage />
             </RequireResource>
           }
         />

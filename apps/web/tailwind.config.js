@@ -21,7 +21,7 @@ export default {
           dark: '#115e59',
           light: '#ccfbf1',
         },
-        // Triage priority levels P1..P5 (CLAUDE.md §2 / M2). Used by Badge.
+        // Triage priority levels P1..P5 (ARCH.md §2 / M2). Used by Badge.
         priority: {
           p1: '#dc2626', // critical  — red-600
           p2: '#ea580c', // high      — orange-600
@@ -29,7 +29,7 @@ export default {
           p4: '#16a34a', // low       — green-600
           p5: '#2563eb', // non-urgent— blue-600
         },
-        // DetectedIssue.severity (CLAUDE.md §7). Used by Badge.
+        // DetectedIssue.severity (ARCH.md §7). Used by Badge.
         severity: {
           high: '#dc2626',
           moderate: '#d97706',

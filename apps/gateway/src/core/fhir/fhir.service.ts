@@ -25,7 +25,7 @@ export interface JsonPatchOperation {
 }
 
 /**
- * The gateway's single door to HAPI FHIR (CLAUDE.md §9). Every HAPI call goes
+ * The gateway's single door to HAPI FHIR (ARCH.md §9). Every HAPI call goes
  * through here; modules must never call HAPI directly.
  *
  * PHI safety: logs carry resource types and logical ids only — never patient
@@ -54,7 +54,7 @@ export class FhirService {
    * Idempotent create via FHIR conditional-create (`If-None-Exist`). HAPI runs
    * the supplied search; if it matches an existing resource it returns that one
    * (HTTP 200) instead of inserting a duplicate, otherwise it creates (HTTP 201).
-   * Used for offline-replay safety (CLAUDE.md §8): a queued write carrying a
+   * Used for offline-replay safety (ARCH.md §8): a queued write carrying a
    * stable client-request-id identifier upserts rather than duplicates.
    *
    * @param ifNoneExist a FHIR search query, e.g. `identifier=<system>|<value>`.

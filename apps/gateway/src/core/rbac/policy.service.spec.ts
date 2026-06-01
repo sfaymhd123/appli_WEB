@@ -9,14 +9,14 @@ import {
 import { PolicyService } from './policy.service';
 
 /**
- * Exhaustive guard over the CLAUDE.md §6 authorization rules. The expectations
+ * Exhaustive guard over the ARCH.md §6 authorization rules. The expectations
  * below are an independent restatement of the spec tables — if the matrix in
  * fhir-domain ever drifts from §6, these assertions fail. PolicyService is the
  * gateway's single decision point (RolesGuard delegates to it), so testing it
  * pins the whole security layer.
  */
 
-// §6 action matrix — deny by default; `true` is allowed. Transcribed from CLAUDE.md.
+// §6 action matrix — deny by default; `true` is allowed. Transcribed from ARCH.md.
 const EXPECTED_ACTIONS: Record<DspActionType, Record<RoleType, boolean>> = {
   [DspAction.READ_RECORD]: {
     Physician: true,
@@ -71,7 +71,7 @@ const EXPECTED_EVERYTHING: Record<RoleType, FilteredResourceType[]> = {
   Admin: ['Patient', 'AuditEvent'],
 };
 
-describe('PolicyService — CLAUDE.md §6 RBAC matrix', () => {
+describe('PolicyService — ARCH.md §6 RBAC matrix', () => {
   const policy = new PolicyService();
   const actions = Object.values(DspAction);
 

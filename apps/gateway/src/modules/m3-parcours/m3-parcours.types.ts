@@ -8,7 +8,7 @@ export interface ActivitySummary {
 }
 
 /**
- * The "needs review" marker driven by the M4 HbA1c>7 event (CLAUDE.md §8),
+ * The "needs review" marker driven by the M4 HbA1c>7 event (ARCH.md §8),
  * read from the `CAREPLAN_REVIEW` complex extension.
  */
 export interface CarePlanReviewInfo {

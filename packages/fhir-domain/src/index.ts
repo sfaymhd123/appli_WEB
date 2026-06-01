@@ -1,7 +1,7 @@
 /**
  * @hphii/fhir-domain — shared domain constants for the HPHII SHR / DSP.
  *
- * Single source of truth, mirroring CLAUDE.md:
+ * Single source of truth, mirroring ARCH.md:
  *   §5  FHIR code systems + HPHII extension/identifier URLs + custom value sets
  *   §6  RBAC roles, action matrix, role → $everything resource filter
  *   §7  LOINC observation codes, UCUM units, alert thresholds
@@ -35,7 +35,7 @@ export const HphiiUrls = {
   ESCALATION_TIMER_MINUTES: 'https://hphii.ma/fhir/escalation-timer-minutes',
   RBAC_ROLES: 'https://hphii.ma/fhir/rbac-roles',
   RBAC_FILTER: 'https://hphii.ma/fhir/rbac-filter',
-  // Offline-first idempotency (CLAUDE.md §8): a stable, client-generated request
+  // Offline-first idempotency (ARCH.md §8): a stable, client-generated request
   // id carried as a resource identifier so a queued write replayed after a
   // reconnect upserts (conditional create) instead of duplicating.
   CLIENT_REQUEST_ID: 'https://hphii.ma/fhir/client-request-id',
@@ -51,7 +51,7 @@ export const HphiiUrls = {
 } as const;
 
 /* ============================================================
- * §5 — Custom value sets (the parenthesised options in CLAUDE.md §5)
+ * §5 — Custom value sets (the parenthesised options in ARCH.md §5)
  * ========================================================== */
 export const ZoneType = {
   RURAL: 'Rural',
@@ -191,7 +191,7 @@ export const PathwayTypeLabels: Record<PathwayType, string> = {
 };
 
 /**
- * Lifecycle of a CarePlan review request (CLAUDE.md §8 — HbA1c > 7 triggers a
+ * Lifecycle of a CarePlan review request (ARCH.md §8 — HbA1c > 7 triggers a
  * review). Stored in the {@link HphiiUrls.CAREPLAN_REVIEW} extension; not a FHIR
  * status, so modelled as a named value set.
  */
@@ -349,7 +349,7 @@ export interface ObservationSpec {
   readonly key: string;
   readonly label: string;
   readonly loinc: string;
-  /** Human-readable unit as written in CLAUDE.md §7. */
+  /** Human-readable unit as written in ARCH.md §7. */
   readonly displayUnit: string;
   /** UCUM code (CodeSystems.UCUM) for the Quantity.code. */
   readonly ucumCode: string;
@@ -363,7 +363,11 @@ export const OBSERVATION_SPECS = {
     loinc: '8480-6',
     displayUnit: 'mmHg',
     ucumCode: 'mm[Hg]',
-    rules: [{ comparator: '>', value: 140, severity: 'high' }],
+    rules: [
+      { comparator: '>=', value: 180, severity: 'high' }, // Grade 3
+      { comparator: '>=', value: 160, severity: 'moderate' }, // Grade 2
+      { comparator: '>', value: 140, severity: 'low' }, // Grade 1
+    ],
   },
   DIASTOLIC_BP: {
     key: 'diastolic-bp',
@@ -371,7 +375,11 @@ export const OBSERVATION_SPECS = {
     loinc: '8462-4',
     displayUnit: 'mmHg',
     ucumCode: 'mm[Hg]',
-    rules: [{ comparator: '>', value: 90, severity: 'moderate' }],
+    rules: [
+      { comparator: '>=', value: 110, severity: 'high' }, // Grade 3
+      { comparator: '>=', value: 100, severity: 'moderate' }, // Grade 2
+      { comparator: '>', value: 90, severity: 'low' }, // Grade 1
+    ],
   },
   FASTING_GLUCOSE: {
     key: 'fasting-glucose',
@@ -379,7 +387,10 @@ export const OBSERVATION_SPECS = {
     loinc: '2339-0',
     displayUnit: 'mg/dL',
     ucumCode: 'mg/dL',
-    rules: [{ comparator: '>', value: 126, severity: 'moderate' }],
+    rules: [
+      { comparator: '>=', value: 126, severity: 'moderate' }, // Diagnostic threshold
+      { comparator: '>=', value: 110, severity: 'low' }, // Pre-diabetes
+    ],
   },
   POSTPRANDIAL_GLUCOSE: {
     key: 'postprandial-glucose',
@@ -387,7 +398,7 @@ export const OBSERVATION_SPECS = {
     loinc: '2345-7',
     displayUnit: 'mg/dL',
     ucumCode: 'mg/dL',
-    rules: [{ comparator: '>', value: 200, severity: 'high' }],
+    rules: [{ comparator: '>=', value: 200, severity: 'high' }],
   },
   HBA1C: {
     key: 'hba1c',
@@ -395,7 +406,7 @@ export const OBSERVATION_SPECS = {
     loinc: '4548-4',
     displayUnit: '%',
     ucumCode: '%',
-    // > 7 triggers a CarePlan review (no DetectedIssue) — CLAUDE.md §7/§8.
+    // Cible générale ≤ 7% (MSSS 2023)
     rules: [{ comparator: '>', value: 7, severity: null, action: 'careplan-review' }],
   },
   HEART_RATE: {
@@ -405,8 +416,35 @@ export const OBSERVATION_SPECS = {
     displayUnit: 'bpm',
     ucumCode: '/min',
     rules: [
-      { comparator: '<', value: 50, severity: 'high' },
       { comparator: '>', value: 120, severity: 'high' },
+      { comparator: '>', value: 100, severity: 'moderate' }, // Tachycardia
+      { comparator: '<', value: 50, severity: 'high' },
+      { comparator: '<', value: 60, severity: 'moderate' }, // Bradycardia
+    ],
+  },
+  RESPIRATORY_RATE: {
+    key: 'respiratory-rate',
+    label: 'Respiratory rate',
+    loinc: '9279-1',
+    displayUnit: '/min',
+    ucumCode: '/min',
+    rules: [
+      { comparator: '>', value: 30, severity: 'high' },
+      { comparator: '>', value: 20, severity: 'moderate' }, // Tachypnea
+      { comparator: '<', value: 10, severity: 'high' },
+      { comparator: '<', value: 12, severity: 'moderate' }, // Bradypnea
+    ],
+  },
+  TEMPERATURE: {
+    key: 'temperature',
+    label: 'Temperature',
+    loinc: '8310-5',
+    displayUnit: '°C',
+    ucumCode: 'Cel',
+    rules: [
+      { comparator: '>', value: 40, severity: 'high' },
+      { comparator: '>', value: 38.0, severity: 'moderate' }, // Fever
+      { comparator: '<', value: 35.0, severity: 'high' }, // Hypothermia
     ],
   },
   SERUM_CREATININE: {
@@ -415,7 +453,6 @@ export const OBSERVATION_SPECS = {
     loinc: '2160-0',
     displayUnit: 'mg/dL',
     ucumCode: 'mg/dL',
-    // §7: "> 1.2 (M) / > 1.0 (F) → alert" — modelled here as moderate severity.
     rules: [
       { comparator: '>', value: 1.2, severity: 'moderate', sex: 'male' },
       { comparator: '>', value: 1.0, severity: 'moderate', sex: 'female' },

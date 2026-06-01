@@ -6,7 +6,7 @@ import type { AppConfig } from '../config/configuration';
 import { DomainEventBus } from './domain-event-bus';
 
 /**
- * BullMQ + Redis (CLAUDE.md §3) plus the in-process {@link DomainEventBus}.
+ * BullMQ + Redis (ARCH.md §3) plus the in-process {@link DomainEventBus}.
  *
  * `BullModule.forRootAsync` registers the shared Redis connection used by every
  * queue/worker in the app (the 15-min escalation timer lives in M4). Feature

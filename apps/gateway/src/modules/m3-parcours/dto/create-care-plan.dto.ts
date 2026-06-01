@@ -73,7 +73,7 @@ export class CareTeamMemberInputDto {
 
 /**
  * Open a chronic care plan (M3a): a CarePlan with linked Conditions, Goals,
- * inline activities and an optional CareTeam (CLAUDE.md §2).
+ * inline activities and an optional CareTeam (ARCH.md §2).
  */
 export class CreateCarePlanDto {
   @IsString()

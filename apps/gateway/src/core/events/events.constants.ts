@@ -1,6 +1,6 @@
 /**
  * Event/queue identifiers and payload shapes for M4's escalation pipeline
- * (CLAUDE.md §8 — the 15-minute alert timer is the project's flagship feature).
+ * (ARCH.md §8 — the 15-minute alert timer is the project's flagship feature).
  */
 
 /** BullMQ queue carrying the delayed "escalate this alert" jobs. */
@@ -27,7 +27,7 @@ export type DomainEventKind =
 /**
  * A single in-app domain event. PHI-safe by contract: it carries resource
  * references (types + logical ids) and a severity, never patient identifiers
- * or measured values (CLAUDE.md §9).
+ * or measured values (ARCH.md §9).
  */
 export interface DomainEvent {
   kind: DomainEventKind;

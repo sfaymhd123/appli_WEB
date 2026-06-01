@@ -10,7 +10,7 @@ Partagé (DSP)** built entirely on **HL7 FHIR R4**.
 - **Constraints:** offline-first (rural patients) and an SMS channel.
 
 > Academic PoC — **not production-ready**. Runs on a single laptop via Docker.
-> The architecture is authoritative in [`CLAUDE.md`](./CLAUDE.md); see also
+> The architecture is authoritative in [`ARCH.md`](./ARCH.md); see also
 > [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) and [`docs/API.md`](./docs/API.md).
 
 ## What's built — modules M1–M6
@@ -176,7 +176,7 @@ openssl rsa -in secrets/jwt-private.pem -pubout -out secrets/jwt-public.pem
 
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — layered diagram + layer→folder map.
 - [`docs/API.md`](./docs/API.md) — every endpoint (FHIR + auth), roles, audit codes, bodies.
-- [`CLAUDE.md`](./CLAUDE.md) — authoritative architecture, RBAC matrix (§6), LOINC thresholds (§7), safety rules (§8).
+- [`ARCH.md`](./ARCH.md) — authoritative architecture, RBAC matrix (§6), LOINC thresholds (§7), safety rules (§8).
 
 ## Conformance checklist
 
@@ -191,7 +191,7 @@ openssl rsa -in secrets/jwt-private.pem -pubout -out secrets/jwt-public.pem
 | M5 Services | ✅ med order + validate, lab/imaging order + result | MedicationRequest, ServiceRequest, DiagnosticReport | M5 unit tests |
 | M6 DSP | ✅ role-filtered `$everything`, export, audit trail | DocumentReference, AuditEvent | M6 filtering tests; e2e Flow 1 |
 
-### Clinical / safety rules (CLAUDE.md §8)
+### Clinical / safety rules (ARCH.md §8)
 
 | Rule | Status | Where |
 |---|---|---|

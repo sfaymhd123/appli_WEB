@@ -6,7 +6,7 @@ import type { AppConfig } from '../config/configuration';
 
 /**
  * Prisma client for the gateway database (users / sessions / MFA / audit
- * mirror). CLAUDE.md §3: NO clinical data here — that lives in HAPI.
+ * mirror). ARCH.md §3: NO clinical data here — that lives in HAPI.
  *
  * The datasource URL is passed explicitly from typed config so connection does
  * not depend on process.env timing.

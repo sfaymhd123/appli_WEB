@@ -6,11 +6,14 @@ import { ALL_ROLES, TRIAGE_PRIORITIES, type Role, type TriagePriority } from '@h
 import type { KpiReport } from './analytics.types';
 import {
   buildAlertStats,
+  buildDemographics,
   buildPathwayMix,
   buildResultStats,
   buildTriageStats,
+  emptyRiskCounts,
   emptyRoleCounts,
   emptyTriageCounts,
+  emptyZoneCounts,
 } from './kpi-math';
 
 /**
@@ -30,7 +33,7 @@ export interface SeedKpis {
   triage_priority_distribution?: Record<string, number>;
 }
 
-/** Seeder's named triage buckets → the P1…P5 scale (CLAUDE.md §2). */
+/** Seeder's named triage buckets → the P1…P5 scale (ARCH.md §2). */
 const TRIAGE_BUCKET_TO_PRIORITY: Record<string, TriagePriority> = {
   Critical: 'P1',
   High: 'P2',
@@ -41,7 +44,7 @@ const TRIAGE_BUCKET_TO_PRIORITY: Record<string, TriagePriority> = {
 /**
  * Candidate locations for the seeder output, most specific first. The gateway
  * runs from `apps/gateway`, so the repo-root `docs/` is two levels up; an env
- * override wins (no hard-coded absolute paths — CLAUDE.md §9).
+ * override wins (no hard-coded absolute paths — ARCH.md §9).
  */
 function candidatePaths(): string[] {
   const candidates = [
@@ -85,6 +88,7 @@ export function mapSeedKpis(raw: SeedKpis): KpiReport {
     source: 'seed',
     generatedAt: raw.generated_at ?? new Date().toISOString(),
     cohortSize: raw.patients_total ?? 0,
+    demographics: buildDemographics(emptyZoneCounts(), emptyRiskCounts()),
     pathwayMix: buildPathwayMix(raw.pathway_mix?.chronic ?? 0, raw.pathway_mix?.episodic ?? 0),
     triage: buildTriageStats(byPriority),
     monitoring: { observations: raw.monitoring_observations_total ?? 0 },

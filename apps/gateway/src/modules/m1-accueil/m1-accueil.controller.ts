@@ -28,16 +28,17 @@ interface ResponseLike {
 /**
  * M1 — Accueil & Identité. Patient identity + coverage.
  * Front-desk + clinical roles only; Pharmacist/Lab-Technician are out of scope
- * here (their access is narrowed to meds/lab per CLAUDE.md §6).
+ * here (their access is narrowed to meds/lab per ARCH.md §6).
  * Guarded globally by JwtAuthGuard → RolesGuard; mutations/reads are audited.
  */
 @Controller('patients')
-@Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN)
+@Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN, Role.PHARMACIST, Role.LAB_TECHNICIAN)
 export class M1AccueilController {
   constructor(private readonly m1: M1AccueilService) {}
 
   /** Register a new patient; returns 201 + Location of the created resource. */
   @Post()
+  @Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
   async register(
@@ -66,6 +67,7 @@ export class M1AccueilController {
 
   /** Attach a coverage and run a simulated eligibility check. */
   @Post(':id/coverage')
+  @Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
   addCoverage(

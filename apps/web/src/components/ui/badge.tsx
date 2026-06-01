@@ -3,7 +3,7 @@ import { cn } from '../../lib/utils/cn';
 
 /**
  * Badge tones. Includes triage priorities (P1..P5) and DetectedIssue
- * severities (high/moderate/low) per CLAUDE.md §2/§7, plus generic tones.
+ * severities (high/moderate/low) per ARCH.md §2/§7, plus generic tones.
  *
  * NOTE: class strings are written as full literals so Tailwind's JIT detects
  * them — never build them dynamically (e.g. `bg-priority-${level}`).

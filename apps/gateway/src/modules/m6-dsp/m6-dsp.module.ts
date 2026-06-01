@@ -4,7 +4,7 @@ import { FhirModule } from '../../core/fhir';
 import { M6DspController } from './m6-dsp.controller';
 import { M6DspService } from './m6-dsp.service';
 
-/** M6 — DSP / SHR: role-filtered $everything + DocumentReference export + audit trail (CLAUDE.md §6/§8). */
+/** M6 — DSP / SHR: role-filtered $everything + DocumentReference export + audit trail (ARCH.md §6/§8). */
 @Module({
   imports: [FhirModule],
   controllers: [M6DspController],

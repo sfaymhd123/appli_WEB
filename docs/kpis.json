@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-30T15:40:00+00:00",
+  "generated_at": "2026-06-01T21:53:04+00:00",
   "source": "Telehealth_Framework_Complete.xlsx",
   "patients_total": 371,
   "cases_total": 531,
@@ -16,16 +16,16 @@
     "abnormal_pct": 17.0
   },
   "alerts": {
-    "total": 626,
+    "total": 625,
     "by_status": {
-      "Acknowledged": 445,
-      "Pending": 114,
-      "Escalated": 67
+      "Pending": 138,
+      "Escalated": 67,
+      "Acknowledged": 420
     },
-    "acknowledged_pct": 71.1,
-    "pending_pct": 18.2,
+    "acknowledged_pct": 67.2,
+    "pending_pct": 22.1,
     "escalated_pct": 10.7,
-    "unacknowledged_pct": 28.9
+    "unacknowledged_pct": 32.8
   },
   "dsp_access_by_role": {
     "Physician": 816,

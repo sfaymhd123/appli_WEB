@@ -6,18 +6,18 @@ import { AnalyticsService } from './analytics.service';
 import type { KpiReport } from './analytics.types';
 
 /**
- * Analytics — balanced-scorecard KPIs (CLAUDE.md report metrics). Guarded
+ * Analytics — balanced-scorecard KPIs (ARCH.md report metrics). Guarded
  * globally by JwtAuthGuard → RolesGuard; restricted to Admin + Physician.
  *
  * `GET /kpis` is an aggregate, non-patient-specific read, so it is intentionally
  * NOT decorated with @Audit (the ATNA trail covers per-patient DSP access only).
  */
-@Controller()
+@Controller('kpis')
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}
 
   /** Balanced-scorecard KPIs, computed live from FHIR (seed fallback). */
-  @Get('kpis')
+  @Get()
   @Roles(Role.ADMIN, Role.PHYSICIAN)
   getKpis(): Promise<KpiReport> {
     return this.analytics.getKpis();

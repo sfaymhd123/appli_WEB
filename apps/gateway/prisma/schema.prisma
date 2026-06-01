@@ -1,4 +1,4 @@
-// Gateway database (CLAUDE.md §3): users, roles, sessions, MFA secrets, audit
+// Gateway database (ARCH.md §3): users, roles, sessions, MFA secrets, audit
 // mirror. NO clinical data here — clinical data lives in HAPI FHIR.
 //
 // Connection string comes from env (GATEWAY_DATABASE_URL). The gateway runs
@@ -13,7 +13,7 @@ datasource db {
   url      = env("GATEWAY_DATABASE_URL")
 }
 
-/// The 5 RBAC roles (CLAUDE.md §6). Prisma enum identifiers can't contain a
+/// The 5 RBAC roles (ARCH.md §6). Prisma enum identifiers can't contain a
 /// hyphen, so `Lab-Technician` is stored via @map; see auth/role.mapper.ts for
 /// the translation to/from the fhir-domain role string.
 enum Role {
@@ -54,7 +54,7 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
-/// Fast-query mirror of the ATNA AuditEvent posted to HAPI (CLAUDE.md §3, §8).
+/// Fast-query mirror of the ATNA AuditEvent posted to HAPI (ARCH.md §3, §8).
 /// Stores only audit metadata + resource references (IDs) — never clinical
 /// content. A null fhirAuditEventId flags an event that failed to persist to HAPI.
 model AuditMirror {

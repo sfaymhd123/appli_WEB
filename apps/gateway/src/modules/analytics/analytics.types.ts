@@ -53,8 +53,14 @@ export interface AlertStats {
 /** DSP access counts keyed by RBAC role code (from AuditEvent agents, §8). */
 export type DspAccessByRole = Record<Role, number>;
 
+/** Distribution of patients by zone and risk group (§5 extensions). */
+export interface PatientDemographics {
+  byZone: Record<string, number>;
+  byRiskGroup: Record<string, number>;
+}
+
 /**
- * Balanced-scorecard KPI report (CLAUDE.md report metrics). Computed live from
+ * Balanced-scorecard KPI report (ARCH.md report metrics). Computed live from
  * FHIR where possible, with the seeder's `docs/kpis.json` as a fallback.
  */
 export interface KpiReport {
@@ -62,6 +68,7 @@ export interface KpiReport {
   generatedAt: string;
   /** Cohort size — total Patient resources. */
   cohortSize: number;
+  demographics: PatientDemographics;
   pathwayMix: PathwayMix;
   triage: TriageStats;
   monitoring: MonitoringStats;

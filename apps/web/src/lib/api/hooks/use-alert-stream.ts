@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { getAccessToken } from '../../auth/token-store';
 import type { AlertEventKind, AlertStreamEvent } from '../types/monitoring';
 
-// VITE_* is exposed to the browser — NEVER put secrets here (CLAUDE.md §9).
+// VITE_* is exposed to the browser — NEVER put secrets here (ARCH.md §9).
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 const EVENT_KINDS: AlertEventKind[] = [

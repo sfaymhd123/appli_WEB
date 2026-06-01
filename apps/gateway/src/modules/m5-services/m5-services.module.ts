@@ -7,7 +7,7 @@ import { M5ServicesController } from './m5-services.controller';
 import { M5ServicesService } from './m5-services.service';
 
 /**
- * M5 — Services médico-techniques: pharmacy, laboratory, imaging (CLAUDE.md §2).
+ * M5 — Services médico-techniques: pharmacy, laboratory, imaging (ARCH.md §2).
  *
  * - FhirModule provides the FhirService (all HAPI access).
  * - NotificationsModule fans abnormal-result alerts to SMS + in-app channels.

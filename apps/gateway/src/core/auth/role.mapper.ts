@@ -2,7 +2,7 @@ import type { Role as DomainRole } from '@hphii/fhir-domain';
 import { Role as PrismaRole } from '@prisma/client';
 
 /**
- * fhir-domain (the single source of truth, CLAUDE.md §6) uses the role string
+ * fhir-domain (the single source of truth, ARCH.md §6) uses the role string
  * 'Lab-Technician' with a hyphen. A Prisma enum identifier can't contain a
  * hyphen, so the schema declares `LabTechnician @map("Lab-Technician")`. These
  * exhaustive maps translate between the two representations without casts.

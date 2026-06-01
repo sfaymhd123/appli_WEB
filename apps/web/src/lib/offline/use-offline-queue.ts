@@ -12,7 +12,7 @@ export interface OfflineQueueState {
 }
 
 /**
- * Observes the offline write queue and drains it on reconnect (CLAUDE.md §8).
+ * Observes the offline write queue and drains it on reconnect (ARCH.md §8).
  * Mount once near the app shell. On transition to online it replays queued
  * writes, then invalidates the triage/monitoring queries so freshly-synced
  * resources appear without a manual refresh.

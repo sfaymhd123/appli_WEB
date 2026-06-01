@@ -27,6 +27,7 @@ export interface PrescriptionSummary {
   /** FHIR MedicationRequest.status (draft → active | cancelled). */
   status: string;
   intent?: string;
+  priority?: string;
   /** Medication display text. */
   medication: string;
   dosageInstruction?: string;

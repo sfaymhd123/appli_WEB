@@ -26,7 +26,7 @@ function clone<T>(value: T): T {
  * In-memory FhirService double for the e2e flows. Implements only the surface
  * the gateway actually exercises — create / conditionalCreate / read / update /
  * search / $everything — over a Map, with no HAPI and no network so the suite
- * stays deterministic and laptop-runnable (CLAUDE.md §1/§11).
+ * stays deterministic and laptop-runnable (ARCH.md §1/§11).
  *
  * It honours FHIR conditional-create (`If-None-Exist` by identifier), which is
  * what offline-replay idempotency (§8) relies on: a replayed write carrying a

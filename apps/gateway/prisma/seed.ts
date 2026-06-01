@@ -2,7 +2,7 @@ import { PrismaClient, Role } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 /**
- * Seed one gateway user per RBAC role (CLAUDE.md §6). PoC only — all users
+ * Seed one gateway user per RBAC role (ARCH.md §6). PoC only — all users
  * share a single, clearly non-production password, and MFA is disabled so
  * dev login is one-step. To exercise TOTP, set isMfaEnabled=true and a base32
  * totpSecret on a user (the /auth/mfa/verify flow + AuthService tests cover it).

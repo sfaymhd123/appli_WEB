@@ -18,7 +18,7 @@ export interface AuditRecordInput {
   outcome?: AuditOutcome;
 }
 
-/** DICOM "Patient Record" event type (CLAUDE.md §5). */
+/** DICOM "Patient Record" event type (ARCH.md §5). */
 const PATIENT_RECORD_TYPE_CODE = '110110';
 
 @Injectable()
@@ -32,7 +32,7 @@ export class AuditService {
 
   /**
    * Build an ATNA AuditEvent, post it to HAPI via FhirService, and mirror it in
-   * the gateway DB. Non-blocking by design (CLAUDE.md §8 + user decision): a
+   * the gateway DB. Non-blocking by design (ARCH.md §8 + user decision): a
    * HAPI failure is logged and still mirrored (fhirAuditEventId = null) so the
    * access is never silently lost. This method never rejects. PHI-safe: only
    * the resource reference + action are logged.

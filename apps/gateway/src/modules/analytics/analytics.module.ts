@@ -5,7 +5,7 @@ import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 
 /**
- * Analytics — balanced-scorecard KPI dashboard (CLAUDE.md report metrics).
+ * Analytics — balanced-scorecard KPI dashboard (ARCH.md report metrics).
  * FhirModule provides the FhirService for all live aggregation; the seed
  * fallback (`docs/kpis.json`) is read directly from disk.
  */

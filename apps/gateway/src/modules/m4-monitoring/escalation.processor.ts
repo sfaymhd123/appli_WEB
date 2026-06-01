@@ -6,7 +6,7 @@ import { ALERT_ESCALATION_QUEUE, ESCALATION_JOB, type EscalationJobData } from '
 import { M4MonitoringService } from './m4-monitoring.service';
 
 /**
- * BullMQ worker for the 15-min escalation timer (CLAUDE.md §8). When a delayed
+ * BullMQ worker for the 15-min escalation timer (ARCH.md §8). When a delayed
  * job fires, it hands off to M4MonitoringService.runEscalation, which re-reads
  * the DetectedIssue and only escalates if it is still Pending. The flagship
  * safety guarantee: no high/critical alert is ever silently lost.

@@ -1,6 +1,20 @@
-import { ALL_ROLES, TRIAGE_PRIORITIES, type Role, type TriagePriority } from '@hphii/fhir-domain';
+import {
+  ALL_ROLES,
+  TRIAGE_PRIORITIES,
+  RiskGroup,
+  ZoneType,
+  type Role,
+  type TriagePriority,
+} from '@hphii/fhir-domain';
 
-import type { AlertStats, DspAccessByRole, PathwayMix, ResultStats, TriageStats } from './analytics.types';
+import type {
+  AlertStats,
+  DspAccessByRole,
+  PathwayMix,
+  PatientDemographics,
+  ResultStats,
+  TriageStats,
+} from './analytics.types';
 
 /**
  * Pure KPI arithmetic shared by the live aggregator and the seed fallback so
@@ -38,6 +52,29 @@ export function emptyRoleCounts(): DspAccessByRole {
     },
     {} as Record<Role, number>,
   );
+}
+
+/** A counter for all 3 HPHII zone types initialised to zero. */
+export function emptyZoneCounts(): Record<string, number> {
+  return Object.values(ZoneType).reduce((acc, zone) => {
+    acc[zone] = 0;
+    return acc;
+  }, {} as Record<string, number>);
+}
+
+/** A counter for all 4 HPHII risk groups initialised to zero. */
+export function emptyRiskCounts(): Record<string, number> {
+  return Object.values(RiskGroup).reduce((acc, group) => {
+    acc[group] = 0;
+    return acc;
+  }, {} as Record<string, number>);
+}
+
+export function buildDemographics(
+  byZone: Record<string, number>,
+  byRiskGroup: Record<string, number>,
+): PatientDemographics {
+  return { byZone, byRiskGroup };
 }
 
 export function buildPathwayMix(chronic: number, episodic: number): PathwayMix {

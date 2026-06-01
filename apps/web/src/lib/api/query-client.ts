@@ -3,7 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 /**
  * Shared TanStack Query client. `networkMode: 'offlineFirst'` lets cached data
  * serve while offline and defers refetches until connectivity returns
- * (CLAUDE.md §8 offline-first). Retries are modest to avoid hammering a flaky
+ * (ARCH.md §8 offline-first). Retries are modest to avoid hammering a flaky
  * rural link.
  */
 export const queryClient = new QueryClient({

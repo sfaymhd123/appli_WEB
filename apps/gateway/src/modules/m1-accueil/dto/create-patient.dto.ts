@@ -27,7 +27,7 @@ export class CreatePatientDto {
   @IsIn(Object.values(RiskGroup))
   riskGroup!: RiskGroup;
 
-  /** Optional mobile number — the SMS channel (CLAUDE.md §1). */
+  /** Optional mobile number — the SMS channel (ARCH.md §1). */
   @IsOptional()
   @IsString()
   phone?: string;

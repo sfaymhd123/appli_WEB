@@ -31,4 +31,22 @@ describe('runTriage', () => {
     const result = runTriage({ vitals: { systolicBp: 165, diastolicBp: 105 } });
     expect(result.priority).toBe(TriagePriority.P2);
   });
+
+  it('flags respiratory distress (> 30) as P1', () => {
+    const result = runTriage({ vitals: { respiratoryRate: 35 } });
+    expect(result.priority).toBe(TriagePriority.P1);
+    expect(result.findings.some((f) => f.code === 'rr-extreme')).toBe(true);
+  });
+
+  it('flags hyperpyrexia (> 40°C) as P1', () => {
+    const result = runTriage({ vitals: { temperature: 40.5 } });
+    expect(result.priority).toBe(TriagePriority.P1);
+    expect(result.findings.some((f) => f.code === 'temp-extreme')).toBe(true);
+  });
+
+  it('flags high fever (> 38.5°C) as P2', () => {
+    const result = runTriage({ vitals: { temperature: 39 } });
+    expect(result.priority).toBe(TriagePriority.P2);
+    expect(result.findings.some((f) => f.code === 'temp-high')).toBe(true);
+  });
 });

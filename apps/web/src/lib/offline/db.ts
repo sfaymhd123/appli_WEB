@@ -1,5 +1,5 @@
 /**
- * Tiny promise-based IndexedDB wrapper for the offline write queue (CLAUDE.md §8).
+ * Tiny promise-based IndexedDB wrapper for the offline write queue (ARCH.md §8).
  * Zero-dependency on purpose — the PoC must stay laptop-runnable and lean (§11),
  * and we only need one object store with a handful of CRUD operations.
  *

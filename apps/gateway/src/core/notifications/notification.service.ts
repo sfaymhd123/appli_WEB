@@ -10,7 +10,7 @@ import type {
 } from './notification.types';
 
 /**
- * Multi-channel notification fan-out (CLAUDE.md §8 — alerts notify the clinician
+ * Multi-channel notification fan-out (ARCH.md §8 — alerts notify the clinician
  * via SMS + in-app). Adding a channel = register it here; callers are untouched.
  * Channel failures are isolated so one transport never blocks the others.
  */

@@ -34,7 +34,7 @@ import {
 import type { AlertsResult, AlertSummary, ObservationResult, VitalsTrend } from './m4-monitoring.types';
 
 /**
- * M4 — Monitoring, alerts & escalation (CLAUDE.md §7/§8). Captures coded vitals,
+ * M4 — Monitoring, alerts & escalation (ARCH.md §7/§8). Captures coded vitals,
  * runs the §7 threshold engine, raises DetectedIssue alerts with a 15-min BullMQ
  * escalation timer, and drives the acknowledge → resolve lifecycle. All HAPI
  * access is via FhirService; all notifications via NotificationService.
@@ -167,14 +167,20 @@ export class M4MonitoringService {
 
   /** Active alerts (not yet resolved), most-recent first. */
   async listActiveAlerts(): Promise<AlertsResult> {
+    // FHIR R4 §DetectedIssue does NOT support the 'status' search parameter.
+    // We fetch a larger page and filter gateway-side for 'active' (not resolved) ones.
     const bundle = await this.fhir.search<DetectedIssue>('DetectedIssue', {
-      status: 'registered,preliminary',
-      _count: 200,
+      _count: 500,
       _sort: '-identified',
     });
     const alerts: AlertSummary[] = (bundle.entry ?? [])
       .map((entry) => entry.resource)
-      .filter((resource): resource is DetectedIssue => DetectedIssueHelper.is(resource))
+      .filter((resource): resource is DetectedIssue => {
+        if (!DetectedIssueHelper.is(resource)) return false;
+        // status: registered | preliminary | final | entered-in-error.
+        // Final means resolved.
+        return resource.status === 'registered' || resource.status === 'preliminary';
+      })
       .map(projectAlert);
     return { total: alerts.length, alerts };
   }
@@ -292,7 +298,7 @@ export class M4MonitoringService {
       await this.escalationQueue.add(
         ESCALATION_JOB,
         { detectedIssueId },
-        { jobId: detectedIssueId, delay, removeOnComplete: true, removeOnFail: false },
+        { jobId: `alert-${detectedIssueId}`, delay, removeOnComplete: true, removeOnFail: false },
       );
       this.logger.warn(`Escalation armed for DetectedIssue/${detectedIssueId} (+${delay}ms)`);
     } catch (error) {
@@ -307,7 +313,7 @@ export class M4MonitoringService {
   /** Remove a pending escalation job (acknowledge/resolve). Best-effort. */
   private async cancelEscalation(detectedIssueId: string): Promise<void> {
     try {
-      const job = await this.escalationQueue.getJob(detectedIssueId);
+      const job = await this.escalationQueue.getJob(`alert-${detectedIssueId}`);
       if (job) await job.remove();
     } catch (error) {
       this.logger.warn(

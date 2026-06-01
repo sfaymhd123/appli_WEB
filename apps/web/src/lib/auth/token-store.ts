@@ -1,7 +1,7 @@
 import type { Role } from '@hphii/fhir-domain';
 
 /**
- * In-memory token store (CLAUDE.md §9 PHI/secret safety).
+ * In-memory token store (ARCH.md §9 PHI/secret safety).
  *
  * Tokens are deliberately NOT persisted to localStorage/sessionStorage — that
  * keeps them out of reach of XSS and disk. The trade-off is that a full page

@@ -19,6 +19,12 @@ export class M1AccueilService {
   /** Create a Patient with a unique HPHII identifier and zone/risk extensions. */
   async register(dto: CreatePatientDto): Promise<Patient> {
     const mrn = await this.generateUniqueMrn();
+    const currentYear = new Date().getFullYear();
+    const age = currentYear - dto.birthYear;
+
+    // PoC logic (§5): Auto-assign to Elderly risk group if age >= 65.
+    const effectiveRiskGroup = age >= 65 ? 'Elderly' : dto.riskGroup;
+
     const patient = PatientHelper.build({
       active: true,
       identifier: [{ system: HphiiUrls.PATIENT_ID, value: mrn }],
@@ -28,7 +34,7 @@ export class M1AccueilService {
       birthDate: String(dto.birthYear),
       extension: [
         { url: HphiiUrls.ZONE_TYPE, valueString: dto.zoneType },
-        { url: HphiiUrls.RISK_GROUP, valueString: dto.riskGroup },
+        { url: HphiiUrls.RISK_GROUP, valueString: effectiveRiskGroup },
       ],
     });
     if (dto.phone) {
@@ -50,7 +56,15 @@ export class M1AccueilService {
    */
   async search(query: SearchPatientsDto): Promise<PatientSearchResult> {
     const params: SearchParams = { _count: 50 };
-    if (query.identifier) params.identifier = query.identifier;
+    if (query.identifier) {
+      const idValue = query.identifier.trim();
+      // If the user searches for "pat-123", they likely mean the logical ID.
+      if (idValue.toLowerCase().startsWith('pat-')) {
+        params._id = idValue;
+      } else {
+        params.identifier = idValue;
+      }
+    }
     if (query.name) params.name = query.name;
 
     const bundle = await this.fhir.search<Patient>('Patient', params);

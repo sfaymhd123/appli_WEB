@@ -13,7 +13,7 @@ import {
 } from '../auth/token-store';
 import type { TokenResponse } from '../auth/auth-types';
 
-// VITE_* is exposed to the browser — NEVER put secrets here (CLAUDE.md §9).
+// VITE_* is exposed to the browser — NEVER put secrets here (ARCH.md §9).
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
 /**

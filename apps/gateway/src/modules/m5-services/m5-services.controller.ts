@@ -28,7 +28,7 @@ import type {
 } from './m5-services.types';
 
 /**
- * M5 — Services médico-techniques: pharmacy, laboratory, imaging (CLAUDE.md
+ * M5 — Services médico-techniques: pharmacy, laboratory, imaging (ARCH.md
  * §2/§6). Guarded globally by JwtAuthGuard → RolesGuard; clinical writes and
  * patient-specific actions are audited (ATNA).
  *

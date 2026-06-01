@@ -1,6 +1,6 @@
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
-/** Pharmacist/physician decision on a draft prescription (CLAUDE.md §6). */
+/** Pharmacist/physician decision on a draft prescription (ARCH.md §6). */
 export const PRESCRIPTION_DECISIONS = ['approve', 'reject'] as const;
 export type PrescriptionDecision = (typeof PRESCRIPTION_DECISIONS)[number];
 

@@ -3,7 +3,7 @@ import type { CoverageScheme } from '@hphii/fhir-domain';
 
 /**
  * Result of the simulated coverage eligibility check. PoC only — this is NOT a
- * real RAMED/AMO/payer verification (CLAUDE.md §11: label PoC data clearly).
+ * real RAMED/AMO/payer verification (ARCH.md §11: label PoC data clearly).
  */
 export interface EligibilityResult {
   active: boolean;

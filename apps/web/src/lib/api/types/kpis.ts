@@ -42,11 +42,17 @@ export interface AlertStats {
 
 export type DspAccessByRole = Record<Role, number>;
 
+export interface PatientDemographics {
+  byZone: Record<string, number>;
+  byRiskGroup: Record<string, number>;
+}
+
 /** Balanced-scorecard KPI report returned by GET /kpis. */
 export interface KpiReport {
   source: KpiSource;
   generatedAt: string;
   cohortSize: number;
+  demographics: PatientDemographics;
   pathwayMix: PathwayMix;
   triage: TriageStats;
   monitoring: MonitoringStats;

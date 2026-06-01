@@ -19,6 +19,22 @@ import type { DspAuditTrail } from './m6-dsp.types';
 export class M6DspController {
   constructor(private readonly dsp: M6DspService) {}
 
+  /** Global DocumentReference list (M6). */
+  @Get('documents')
+  @Roles(Role.ADMIN, Role.PHYSICIAN, Role.NURSE)
+  @Audit('R')
+  listDocuments(): Promise<Bundle<DocumentReference>> {
+    return this.dsp.listDocuments();
+  }
+
+  /** Global AuditEvent trail — admin only. */
+  @Get('audit')
+  @Roles(Role.ADMIN)
+  @Audit('R')
+  getGlobalAuditTrail(): Promise<DspAuditTrail> {
+    return this.dsp.listGlobalAuditTrail();
+  }
+
   /**
    * Role-filtered Shared Health Record. All roles may read (§6 read_record),
    * but the returned Bundle is narrowed to the role's allowed resource types.

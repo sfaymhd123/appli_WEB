@@ -3,7 +3,7 @@ import type { DomainEventKind } from '../events';
 /**
  * A clinician-facing notification to fan out across channels (SMS now; in-app
  * via SSE). PHI-safe by contract: `body`/metadata carry resource references and
- * severity only — never patient identifiers or measured values (CLAUDE.md §9).
+ * severity only — never patient identifiers or measured values (ARCH.md §9).
  */
 export interface ClinicalNotification {
   /** Domain event kind this notification corresponds to. */

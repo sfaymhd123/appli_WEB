@@ -2,7 +2,7 @@
  * Generate an RS256 key pair for signing/verifying gateway JWTs.
  *
  * Pure Node `crypto` — no OpenSSL dependency, so it runs the same on
- * Windows / macOS / Linux (CLAUDE.md §3: keep the PoC laptop-runnable).
+ * Windows / macOS / Linux (ARCH.md §3: keep the PoC laptop-runnable).
  *
  * Writes ./secrets/jwt-private.pem + ./secrets/jwt-public.pem, relative to the
  * gateway working dir, matching JWT_*_KEY_PATH in .env.example. Existing keys

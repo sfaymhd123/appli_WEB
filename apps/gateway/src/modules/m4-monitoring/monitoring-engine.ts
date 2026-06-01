@@ -16,7 +16,13 @@ const OBSERVATION_CATEGORY_SYSTEM =
   'http://terminology.hl7.org/CodeSystem/observation-category';
 
 /** Metrics modelled as FHIR vital-signs; the rest are laboratory results. */
-const VITAL_SIGN_KEYS = new Set(['systolic-bp', 'diastolic-bp', 'heart-rate']);
+const VITAL_SIGN_KEYS = new Set([
+  'systolic-bp',
+  'diastolic-bp',
+  'heart-rate',
+  'respiratory-rate',
+  'temperature',
+]);
 
 /** v3-ObservationInterpretation display labels for the codes we emit. */
 const INTERPRETATION_DISPLAY: Record<string, string> = {
@@ -107,7 +113,8 @@ function interpretationConcept(code: string): CodeableConcept {
 /* ----- extension readers (pure) ----- */
 
 export function extString(extensions: Extension[] | undefined, url: string): string | undefined {
-  return extensions?.find((ext) => ext.url === url)?.valueString;
+  const ext = extensions?.find((e) => e.url === url);
+  return ext?.valueString ?? ext?.valueCode;
 }
 
 export function extInteger(extensions: Extension[] | undefined, url: string): number | undefined {

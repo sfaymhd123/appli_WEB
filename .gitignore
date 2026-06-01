@@ -16,7 +16,7 @@ apps/web/dev-dist/
 secrets/
 *.pem
 
-# ── Clinical / cohort data (PHI — do not commit; see CLAUDE.md §9) ──
+# ── Clinical / cohort data (PHI — do not commit; see ARCH.md §9) ──
 data/*.xlsx
 data/*.xls
 data/*.csv

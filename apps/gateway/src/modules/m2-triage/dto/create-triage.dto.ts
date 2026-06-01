@@ -32,6 +32,18 @@ export class CreateTriageDto {
   glucose?: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  respiratoryRate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(20)
+  @Max(50)
+  temperature?: number;
+
+  @IsOptional()
   @IsIn(SYMPTOM_SEVERITIES)
   symptomSeverity?: SymptomSeverity;
 

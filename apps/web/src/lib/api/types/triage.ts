@@ -10,7 +10,7 @@ export interface TriageRequest {
   glucose?: number;
   symptomSeverity?: SymptomSeverity;
   complaint?: string;
-  /** Offline-replay idempotency key (CLAUDE.md §8); set by the submit hook. */
+  /** Offline-replay idempotency key (ARCH.md §8); set by the submit hook. */
   clientRequestId?: string;
 }
 

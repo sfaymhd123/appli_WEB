@@ -3,7 +3,7 @@ import { api } from '../api/axios';
 import { idbCount, idbDelete, idbGetAll, idbPut, type QueuedWrite } from './db';
 
 /**
- * Offline write queue (CLAUDE.md §8). Writes attempted while offline — or that
+ * Offline write queue (ARCH.md §8). Writes attempted while offline — or that
  * fail with a network error — are persisted in IndexedDB and replayed when the
  * browser reconnects. Each carries a stable `clientRequestId`, so the gateway's
  * conditional-create upserts on replay instead of duplicating (and never

@@ -53,11 +53,11 @@ python seed.py --xlsx ../../data/Telehealth_Framework_Complete.xlsx \
 | `SHR_Access_Log` | `AuditEvent` (IHE ATNA) | `ae-{access_id}` |
 
 **Triage priority → P-level:** Critical→P1, High→P2, Medium→P3, Low→P4.
-**Monitoring LOINC** (CLAUDE.md §7): Systolic `8480-6` (>140→H), Diastolic `8462-4`
+**Monitoring LOINC** (ARCH.md §7): Systolic `8480-6` (>140→H), Diastolic `8462-4`
 (>90→H), Glucose `2339-0` (>126→H). **Alerts:** Critical→`high`, Warning→`moderate`;
 status Pending/Acknowledged/Escalated via the `acknowledgement-status` extension
 (`escalated` is not a valid FHIR `DetectedIssue.status`, so it is modelled as an
-extension per CLAUDE.md §8).
+extension per ARCH.md §8).
 
 ## Idempotency
 

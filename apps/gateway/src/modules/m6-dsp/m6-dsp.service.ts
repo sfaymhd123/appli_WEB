@@ -17,7 +17,7 @@ const PATIENT_SUMMARY_LOINC = '60591-5';
 
 /**
  * M6 — DSP / SHR. Exposes the Shared Health Record:
- *  - role-filtered Patient/$everything (CLAUDE.md §6 role → resource map),
+ *  - role-filtered Patient/$everything (ARCH.md §6 role → resource map),
  *  - export of a summary DocumentReference (§6 "export" right),
  *  - the patient's AuditEvent trail (§8 — every access is audited).
  *
@@ -99,6 +99,27 @@ export class M6DspService {
       .filter((resource): resource is AuditEvent => AuditEventHelper.is(resource))
       .map((event) => this.toAuditEntry(event));
     return { patientId, total: events.length, events };
+  }
+
+  /** Global DocumentReference list (M6). */
+  async listDocuments(): Promise<Bundle<DocumentReference>> {
+    return this.fhir.search<DocumentReference>('DocumentReference', {
+      _count: 100,
+      _sort: '-date',
+    });
+  }
+
+  /** Global AuditEvent trail (Admin only). */
+  async listGlobalAuditTrail(): Promise<DspAuditTrail> {
+    const bundle = await this.fhir.search<AuditEvent>('AuditEvent', {
+      _count: 500,
+      _sort: '-date',
+    });
+    const events = (bundle.entry ?? [])
+      .map((entry) => entry.resource)
+      .filter((resource): resource is AuditEvent => AuditEventHelper.is(resource))
+      .map((event) => this.toAuditEntry(event));
+    return { patientId: 'all', total: events.length, events };
   }
 
   /** Keep only entries whose resource type the role is allowed to see; tag the Bundle. */

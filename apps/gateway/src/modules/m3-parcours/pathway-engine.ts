@@ -43,7 +43,7 @@ export function isActiveCarePlanStatus(status: string | undefined): boolean {
   return status === 'active';
 }
 
-/** Encounter statuses we treat as an "open" episode (CLAUDE.md §2 episodic pathway). */
+/** Encounter statuses we treat as an "open" episode (ARCH.md §2 episodic pathway). */
 export function isActiveEncounterStatus(status: string | undefined): boolean {
   return (
     status === 'planned' ||
@@ -54,7 +54,7 @@ export function isActiveEncounterStatus(status: string | undefined): boolean {
   );
 }
 
-/** chronic wins over episodic; none when neither is active (CLAUDE.md §2). */
+/** chronic wins over episodic; none when neither is active (ARCH.md §2). */
 export function classifyPathway(chronic: boolean, episodic: boolean): PathwayType {
   if (chronic) return PathwayType.CHRONIC;
   if (episodic) return PathwayType.EPISODIC;
@@ -182,7 +182,7 @@ export function buildReviewFlag(patientRef: string, reason: string): Flag {
 }
 
 /* ============================================================
- * Review marker — complex extension (CLAUDE.md §8)
+ * Review marker — complex extension (ARCH.md §8)
  * ============================================================ */
 
 /** Build the CAREPLAN_REVIEW complex extension (status + reason + timestamps). */

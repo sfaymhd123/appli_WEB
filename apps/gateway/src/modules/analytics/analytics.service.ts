@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { AuditEvent, DetectedIssue, DiagnosticReport, Encounter, Extension } from 'fhir/r4';
+import type { AuditEvent, DetectedIssue, DiagnosticReport, Encounter, Extension, Patient } from 'fhir/r4';
 import {
   AcknowledgementStatus,
   HphiiUrls,
@@ -8,15 +8,25 @@ import {
 } from '@hphii/fhir-domain';
 
 import { FhirService, type SearchParams } from '../../core/fhir';
-import type { AlertStats, DspAccessByRole, KpiReport, ResultStats, TriageStats } from './analytics.types';
+import type {
+  AlertStats,
+  DspAccessByRole,
+  KpiReport,
+  PatientDemographics,
+  ResultStats,
+  TriageStats,
+} from './analytics.types';
 import { loadSeedKpis } from './kpi-fallback';
 import {
   buildAlertStats,
+  buildDemographics,
   buildPathwayMix,
   buildResultStats,
   buildTriageStats,
+  emptyRiskCounts,
   emptyRoleCounts,
   emptyTriageCounts,
+  emptyZoneCounts,
 } from './kpi-math';
 
 /**
@@ -56,7 +66,8 @@ export class AnalyticsService {
         this.count('Encounter'),
         this.count('Observation'),
       ]);
-      const [triage, results, alerts, dspAccessByRole] = await Promise.all([
+      const [demographics, triage, results, alerts, dspAccessByRole] = await Promise.all([
+        this.tallyDemographics(),
         this.tallyTriage(),
         this.tallyResults(),
         this.tallyAlerts(),
@@ -67,6 +78,7 @@ export class AnalyticsService {
         source: 'live',
         generatedAt: new Date().toISOString(),
         cohortSize,
+        demographics,
         pathwayMix: buildPathwayMix(chronic, episodic),
         triage,
         monitoring: { observations },
@@ -88,6 +100,22 @@ export class AnalyticsService {
   private async count(resourceType: string, params: SearchParams = {}): Promise<number> {
     const bundle = await this.fhir.search(resourceType, { ...params, _summary: 'count' });
     return bundle.total ?? 0;
+  }
+
+  /** Tally zone and risk group extensions across the cohort. */
+  private async tallyDemographics(): Promise<PatientDemographics> {
+    const bundle = await this.fhir.search<Patient>('Patient', {
+      _count: TALLY_PAGE,
+    });
+    const byZone = emptyZoneCounts();
+    const byRiskGroup = emptyRiskCounts();
+    for (const entry of bundle.entry ?? []) {
+      const zone = extString(entry.resource?.extension, HphiiUrls.ZONE_TYPE);
+      const risk = extString(entry.resource?.extension, HphiiUrls.RISK_GROUP);
+      if (zone && zone in byZone) byZone[zone] += 1;
+      if (risk && risk in byRiskGroup) byRiskGroup[risk] += 1;
+    }
+    return buildDemographics(byZone, byRiskGroup);
   }
 
   /** Tally the triage-priority extension across triaged Encounters → P1…P5. */
@@ -178,6 +206,7 @@ export class AnalyticsService {
       source: 'live',
       generatedAt: new Date().toISOString(),
       cohortSize: 0,
+      demographics: buildDemographics(emptyZoneCounts(), emptyRiskCounts()),
       pathwayMix: buildPathwayMix(0, 0),
       triage: buildTriageStats(emptyTriageCounts()),
       monitoring: { observations: 0 },
@@ -188,9 +217,10 @@ export class AnalyticsService {
   }
 }
 
-/** First `valueString` for the given extension URL, if present. */
+/** First `valueString` or `valueCode` for the given extension URL, if present. */
 function extString(extensions: Extension[] | undefined, url: string): string | undefined {
-  return extensions?.find((ext) => ext.url === url)?.valueString;
+  const ext = extensions?.find((e) => e.url === url);
+  return ext?.valueString ?? ext?.valueCode;
 }
 
 function describe(error: unknown): string {

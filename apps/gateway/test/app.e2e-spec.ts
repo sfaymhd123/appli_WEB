@@ -26,7 +26,10 @@ import { M1AccueilController } from '../src/modules/m1-accueil/m1-accueil.contro
 import { M1AccueilService } from '../src/modules/m1-accueil/m1-accueil.service';
 import { M2TriageController } from '../src/modules/m2-triage/m2-triage.controller';
 import { M2TriageService } from '../src/modules/m2-triage/m2-triage.service';
-import { M4MonitoringController } from '../src/modules/m4-monitoring/m4-monitoring.controller';
+import {
+  M4AlertsController,
+  M4ObservationsController,
+} from '../src/modules/m4-monitoring/m4-monitoring.controller';
 import { M4MonitoringService } from '../src/modules/m4-monitoring/m4-monitoring.service';
 import { M6DspController } from '../src/modules/m6-dsp/m6-dsp.controller';
 import { M6DspService } from '../src/modules/m6-dsp/m6-dsp.service';
@@ -34,7 +37,7 @@ import { FakeAuthGuard } from './fake-auth.guard';
 import { InMemoryFhir } from './in-memory-fhir';
 
 /**
- * End-to-end flows over the real guard → audit pipeline (CLAUDE.md §6/§8).
+ * End-to-end flows over the real guard → audit pipeline (ARCH.md §6/§8).
  *
  * The HTTP stack is genuine — global ValidationPipe, the real RolesGuard +
  * PolicyService (RBAC) and the real AuditInterceptor + AuditService run on every
@@ -57,7 +60,7 @@ describe('Gateway e2e — clinical flows over the RBAC + audit pipeline', () => 
   const smsSend = jest.fn();
   const mirrorCreate = jest.fn();
 
-  /** PoC config: short, env-free defaults (no secrets — CLAUDE.md §9/§11). */
+  /** PoC config: short, env-free defaults (no secrets — ARCH.md §9/§11). */
   const config = {
     get: (key: string): unknown =>
       ({
@@ -92,7 +95,8 @@ describe('Gateway e2e — clinical flows over the RBAC + audit pipeline', () => 
       controllers: [
         M1AccueilController,
         M2TriageController,
-        M4MonitoringController,
+        M4ObservationsController,
+        M4AlertsController,
         M6DspController,
       ],
       providers: [
@@ -292,5 +296,27 @@ describe('Gateway e2e — clinical flows over the RBAC + audit pipeline', () => 
 
     // No principal at all on a gated route → deny by default.
     await request(server()).get(`/dsp/${patientId}`).expect(403);
+  });
+
+  it('Flow 3 — auto-assign Elderly risk group if age >= 65 during registration', async () => {
+    const currentYear = new Date().getFullYear();
+    const elderlyBody = {
+      firstName: 'Elderly',
+      lastName: 'Patient',
+      gender: 'female' as const,
+      birthYear: currentYear - 70, // 70 years old
+      zoneType: ZoneType.URBAN,
+      riskGroup: RiskGroup.STANDARD, // User picks Standard
+    };
+
+    const res = await request(server())
+      .post('/patients')
+      .set(as(Role.NURSE))
+      .send(elderlyBody)
+      .expect(201);
+
+    // Should be Elderly, not Standard (§5 PoC rules).
+    const risk = res.body.extension.find((ext: any) => ext.url === HphiiUrls.RISK_GROUP)?.valueString;
+    expect(risk).toBe(RiskGroup.ELDERLY);
   });
 });

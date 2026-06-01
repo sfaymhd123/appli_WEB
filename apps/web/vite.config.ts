@@ -15,7 +15,7 @@ export default defineConfig({
         navigateFallback: 'index.html',
         runtimeCaching: [
           {
-            // Offline reads (CLAUDE.md §8): cache the gateway's GET responses and
+            // Offline reads (ARCH.md §8): cache the gateway's GET responses and
             // serve them from cache when the network is unavailable. Cross-origin
             // only (the API on :3000) so it never shadows the SPA's own routes.
             // PoC note: keyed by URL, so it assumes a single signed-in user/device.

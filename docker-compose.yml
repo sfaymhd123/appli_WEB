@@ -1,6 +1,6 @@
 name: hphii-shr
 
-# Infra for the HPHII SHR / DSP PoC (CLAUDE.md §3, §10).
+# Infra for the HPHII SHR / DSP PoC (ARCH.md §3, §10).
 # Bring up with:  docker compose up -d
 # Variables come from .env (copy from .env.example); defaults below keep it
 # runnable even without a .env file.

@@ -20,11 +20,10 @@ export function hasPatientFilter(filters: PatientSearchFilters): boolean {
   return Boolean(filters.identifier || filters.name || filters.zone || filters.riskGroup);
 }
 
-/** Search patients (M1). Disabled until at least one filter is provided. */
+/** Search patients (M1). Loads a default list if no filters are provided. */
 export function usePatientSearch(filters: PatientSearchFilters) {
   return useQuery({
     queryKey: patientKeys.list(filters),
-    enabled: hasPatientFilter(filters),
     queryFn: async (): Promise<PatientSearchResult> => {
       const { data } = await api.get<PatientSearchResult>('/patients', { params: filters });
       return data;

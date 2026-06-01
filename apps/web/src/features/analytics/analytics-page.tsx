@@ -77,34 +77,52 @@ export function AnalyticsPage() {
 }
 
 function KpiContent({ report }: { report: KpiReport }) {
-  const { pathwayMix, triage, monitoring, results, alerts, dspAccessByRole } = report;
+  const { pathwayMix, triage, monitoring, results, alerts, dspAccessByRole, demographics } = report;
 
   const triageBars: BarDatum[] = TRIAGE_PRIORITIES.map((priority) => ({
     label: TriagePriorityLabels[priority],
-    value: triage.byPriority[priority] ?? 0,
+    value: triage?.byPriority?.[priority] ?? 0,
     colorClass: PRIORITY_COLOR[priority],
   }));
 
   const roleBars: BarDatum[] = ALL_ROLES.map((role) => ({
     label: RoleLabels[role],
-    value: dspAccessByRole[role] ?? 0,
+    value: dspAccessByRole?.[role] ?? 0,
     colorClass: ROLE_COLOR[role],
   }));
 
+  const zoneBars: BarDatum[] = Object.entries(demographics?.byZone ?? {}).map(([label, value]) => ({
+    label,
+    value: value ?? 0,
+    colorClass: 'bg-clinical-600',
+  }));
+
+  const riskBars: BarDatum[] = Object.entries(demographics?.byRiskGroup ?? {}).map(
+    ([label, value]) => ({
+      label,
+      value: value ?? 0,
+      colorClass: 'bg-clinical-600',
+    }),
+  );
+
   const pathwaySegments: Segment[] = [
-    { label: 'Chronique', value: pathwayMix.chronic, colorClass: 'bg-clinical-600' },
-    { label: 'Épisodique', value: pathwayMix.episodic, colorClass: 'bg-blue-500' },
+    { label: 'Chronique', value: pathwayMix?.chronic ?? 0, colorClass: 'bg-clinical-600' },
+    { label: 'Épisodique', value: pathwayMix?.episodic ?? 0, colorClass: 'bg-blue-500' },
   ];
 
   const alertSegments: Segment[] = [
-    { label: 'Acquittées', value: alerts.acknowledged, colorClass: 'bg-green-500' },
-    { label: 'En attente', value: alerts.pending, colorClass: 'bg-amber-500' },
-    { label: 'Escaladées', value: alerts.escalated, colorClass: 'bg-red-500' },
+    { label: 'Acquittées', value: alerts?.acknowledged ?? 0, colorClass: 'bg-green-500' },
+    { label: 'En attente', value: alerts?.pending ?? 0, colorClass: 'bg-amber-500' },
+    { label: 'Escaladées', value: alerts?.escalated ?? 0, colorClass: 'bg-red-500' },
   ];
 
   const resultSegments: Segment[] = [
-    { label: 'Normaux', value: Math.max(0, results.total - results.abnormal), colorClass: 'bg-green-500' },
-    { label: 'Anormaux', value: results.abnormal, colorClass: 'bg-red-500' },
+    {
+      label: 'Normaux',
+      value: Math.max(0, (results?.total ?? 0) - (results?.abnormal ?? 0)),
+      colorClass: 'bg-green-500',
+    },
+    { label: 'Anormaux', value: results?.abnormal ?? 0, colorClass: 'bg-red-500' },
   ];
 
   return (
@@ -118,39 +136,65 @@ function KpiContent({ report }: { report: KpiReport }) {
 
       {/* Scorecard headline metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Cohorte" value={intText(report.cohortSize)} hint="Patients enregistrés" />
+        <StatCard label="Cohorte" value={intText(report.cohortSize ?? 0)} hint="Patients enregistrés" />
         <StatCard
           label="Parcours"
-          value={intText(pathwayMix.total)}
-          hint={`${pctText(pathwayMix.chronicPct)} chroniques · ${pctText(pathwayMix.episodicPct)} épisodiques`}
+          value={intText(pathwayMix?.total ?? 0)}
+          hint={`${pctText(pathwayMix?.chronicPct ?? 0)} chroniques · ${pctText(
+            pathwayMix?.episodicPct ?? 0,
+          )} épisodiques`}
         />
         <StatCard
           label="Observations"
-          value={intText(monitoring.observations)}
+          value={intText(monitoring?.observations ?? 0)}
           hint="Mesures de monitoring (M4)"
         />
         <StatCard
           label="Triage critique"
-          value={pctText(triage.criticalPct)}
-          hint={`${intText(triage.byPriority.P1 ?? 0)} cas P1 sur ${intText(triage.total)}`}
-          tone={triage.criticalPct >= 10 ? 'danger' : 'warning'}
+          value={pctText(triage?.criticalPct ?? 0)}
+          hint={`${intText(triage?.byPriority?.P1 ?? 0)} cas P1 sur ${intText(triage?.total ?? 0)}`}
+          tone={(triage?.criticalPct ?? 0) >= 10 ? 'danger' : 'warning'}
         />
         <StatCard
           label="Alertes non acquittées"
-          value={pctText(alerts.unacknowledgedPct)}
-          hint={`${pctText(alerts.escalatedPct)} escaladées · ${intText(alerts.total)} au total`}
-          tone={alerts.escalated > 0 ? 'danger' : 'warning'}
+          value={pctText(alerts?.unacknowledgedPct ?? 0)}
+          hint={`${pctText(alerts?.escalatedPct ?? 0)} escaladées · ${intText(
+            alerts?.total ?? 0,
+          )} au total`}
+          tone={(alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
         />
         <StatCard
           label="Résultats anormaux"
-          value={pctText(results.abnormalPct)}
-          hint={`${intText(results.abnormal)} sur ${intText(results.total)} comptes rendus`}
+          value={pctText(results?.abnormalPct ?? 0)}
+          hint={`${intText(results?.abnormal ?? 0)} sur ${intText(
+            results?.total ?? 0,
+          )} comptes rendus`}
           tone="warning"
         />
       </div>
 
       {/* Distribution charts */}
       <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader
+            title="Démographie de la cohorte"
+            description="Répartition par zone de résidence."
+          />
+          <CardBody>
+            <BarChart data={zoneBars} />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title="Profil de risque"
+            description="Répartition par groupe de risque clinique."
+          />
+          <CardBody>
+            <BarChart data={riskBars} />
+          </CardBody>
+        </Card>
+
         <Card>
           <CardHeader
             title="Répartition des parcours"

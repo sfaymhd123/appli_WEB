@@ -15,6 +15,10 @@ export interface TriageVitals {
   heartRate?: number;
   /** Capillary/blood glucose, mg/dL. */
   glucose?: number;
+  /** Respiratory rate, breaths/min. */
+  respiratoryRate?: number;
+  /** Body temperature, °C. */
+  temperature?: number;
 }
 
 export interface TriageInput {
@@ -49,7 +53,7 @@ const SYMPTOM_PRIORITY: Record<SymptomSeverity, TriagePriority> = {
 };
 
 /**
- * Algorithmic triage rule engine (CLAUDE.md §2 M2, §7 thresholds, §8 P1 rule).
+ * Algorithmic triage rule engine (ARCH.md §2 M2, §7 thresholds, §8 P1 rule).
  *
  * Each input signal maps to a candidate priority; the assigned priority is the
  * MOST URGENT (lowest P-number) candidate across all signals. Nothing firing
@@ -67,12 +71,18 @@ const SYMPTOM_PRIORITY: Record<SymptomSeverity, TriagePriority> = {
  *     · ≥ 400 → P1  (hyperglycaemic crisis)
  *     · >  250 → P2
  *     · >  126 → P3
+ *   Respiratory rate, /min
+ *     · >  30 or < 10 → P1
+ *     · >  24 or < 12 → P2
+ *   Temperature, °C
+ *     · >  40 or < 35 → P1
+ *     · >  38.5 → P2
  *   Symptom severity (clinician-reported)
  *     · critical → P1 · severe → P2 · moderate → P3 · mild → P4
  */
 export function runTriage(input: TriageInput): TriageResult {
   const findings: TriageFinding[] = [];
-  const { systolicBp, diastolicBp, heartRate, glucose } = input.vitals;
+  const { systolicBp, diastolicBp, heartRate, glucose, respiratoryRate, temperature } = input.vitals;
 
   // --- Blood pressure ---
   if (isNum(systolicBp) || isNum(diastolicBp)) {
@@ -104,6 +114,24 @@ export function runTriage(input: TriageInput): TriageResult {
       findings.push(finding('glucose-high', TriagePriority.P2, `Hyperglycémie marquée (${glucose} mg/dL).`));
     } else if (glucose > 126) {
       findings.push(finding('glucose-elevated', TriagePriority.P3, `Glycémie élevée (${glucose} mg/dL).`));
+    }
+  }
+
+  // --- Respiratory rate ---
+  if (isNum(respiratoryRate)) {
+    if (respiratoryRate > 30 || respiratoryRate < 10) {
+      findings.push(finding('rr-extreme', TriagePriority.P1, `Fréquence respiratoire extrême (${respiratoryRate}/min).`));
+    } else if (respiratoryRate > 24 || respiratoryRate < 12) {
+      findings.push(finding('rr-abnormal', TriagePriority.P2, `Fréquence respiratoire anormale (${respiratoryRate}/min).`));
+    }
+  }
+
+  // --- Temperature ---
+  if (isNum(temperature)) {
+    if (temperature > 40 || temperature < 35) {
+      findings.push(finding('temp-extreme', TriagePriority.P1, `Température extrême (${temperature}°C).`));
+    } else if (temperature > 38.5) {
+      findings.push(finding('temp-high', TriagePriority.P2, `Fièvre élevée (${temperature}°C).`));
     }
   }
 

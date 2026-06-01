@@ -19,7 +19,7 @@ interface AuditableRequest {
 
 /**
  * Global interceptor: for every handler marked @Audit(...), post exactly one
- * AuditEvent on success (CLAUDE.md §8 — every DSP access is audited).
+ * AuditEvent on success (ARCH.md §8 — every DSP access is audited).
  */
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {

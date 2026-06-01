@@ -1,7 +1,7 @@
 import { useOfflineQueue } from '../../lib/offline';
 
 /**
- * Connectivity + background-sync strip (CLAUDE.md §8). Mounted once in the app
+ * Connectivity + background-sync strip (ARCH.md §8). Mounted once in the app
  * shell, it owns the single offline-queue watcher: it shows an offline notice,
  * a "syncing" notice while queued writes replay on reconnect, and a count of
  * writes still waiting. The PWA service worker serves the cached shell so the

@@ -9,7 +9,7 @@ import {
 
 /**
  * Single authorization decision point. Delegates to the fhir-domain matrices
- * (CLAUDE.md §6) so the policy is never duplicated. Exported for M5/M6 to reuse
+ * (ARCH.md §6) so the policy is never duplicated. Exported for M5/M6 to reuse
  * (e.g. the role → $everything resource filter).
  */
 @Injectable()

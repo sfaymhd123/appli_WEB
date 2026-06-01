@@ -15,7 +15,7 @@ export interface SmsSendResult {
 }
 
 /**
- * Pluggable SMS transport (CLAUDE.md §3). The default ConsoleSmsProvider logs;
+ * Pluggable SMS transport (ARCH.md §3). The default ConsoleSmsProvider logs;
  * a Twilio adapter can be added without touching callers. Never hard-code a
  * provider at a call site — always depend on this interface.
  */

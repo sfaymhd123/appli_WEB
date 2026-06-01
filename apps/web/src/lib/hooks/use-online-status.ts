@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Tracks browser connectivity for offline-first UX (CLAUDE.md §8).
+ * Tracks browser connectivity for offline-first UX (ARCH.md §8).
  * Seeds from navigator.onLine and updates on the window online/offline events.
  */
 export function useOnlineStatus(): boolean {

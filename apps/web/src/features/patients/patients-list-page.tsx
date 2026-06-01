@@ -148,12 +148,7 @@ export function PatientsListPage() {
         </CardBody>
       </Card>
 
-      {!hasPatientFilter(filters) ? (
-        <EmptyState
-          title="Recherchez un patient"
-          description="Saisissez un identifiant, un nom, une zone ou un groupe de risque, puis lancez la recherche."
-        />
-      ) : query.isLoading ? (
+      {query.isLoading ? (
         <div className="flex justify-center py-12">
           <Spinner size="lg" className="text-clinical-600" />
         </div>

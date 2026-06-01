@@ -1,7 +1,7 @@
 import type { BadgeTone } from '../../components/ui';
 
 /**
- * Lightweight, dependency-free charts for the KPI dashboard (CLAUDE.md §11 —
+ * Lightweight, dependency-free charts for the KPI dashboard (ARCH.md §11 —
  * keep the PoC laptop-runnable; no heavy charting library). Everything is plain
  * CSS/flex/grid using the Tailwind design tokens.
  */

@@ -1,4 +1,5 @@
 import {
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -11,7 +12,7 @@ import {
 /**
  * POST /medication-requests — a physician orders a medication (M5 pharmacy).
  * Created as a `draft`/`order` MedicationRequest awaiting pharmacist validation
- * (CLAUDE.md §6: "Validate prescription" — Physician/Pharmacist).
+ * (ARCH.md §6: "Validate prescription" — Physician/Pharmacist).
  *
  * PoC note: medication is free-text (no validated drug dictionary). An optional
  * coding may be supplied but is not clinically validated.
@@ -57,6 +58,12 @@ export class CreateMedicationRequestDto {
   @IsString()
   @MaxLength(40)
   quantityUnit?: string;
+
+  /** Prescription priority (routine | urgent | asap | stat). */
+  @IsOptional()
+  @IsString()
+  @IsIn(['routine', 'urgent', 'asap', 'stat'])
+  priority?: string;
 
   @IsOptional()
   @IsString()

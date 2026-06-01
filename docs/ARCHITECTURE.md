@@ -1,7 +1,7 @@
 # Architecture — HPHII SHR / DSP
 
 > Academic **proof-of-concept**, not production-ready. The authoritative
-> architecture spec lives in [`../CLAUDE.md`](../CLAUDE.md); this document is the
+> architecture spec lives in [`../ARCH.md`](../ARCH.md); this document is the
 > human-readable companion — the layered diagram from the report rendered in
 > text, plus how every layer maps to a folder in the repo.
 

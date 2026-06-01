@@ -9,7 +9,7 @@ import type { DomainEvent } from './events.constants';
  * lets late joiners / pollers read the most recent events.
  *
  * PHI safety: callers must only emit PHI-safe {@link DomainEvent}s — this bus
- * logs event *kinds* and counts, never the payload (CLAUDE.md §9).
+ * logs event *kinds* and counts, never the payload (ARCH.md §9).
  */
 @Injectable()
 export class DomainEventBus {

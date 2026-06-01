@@ -1,7 +1,7 @@
 import { IsIn, IsISO8601, IsNumber, IsOptional, IsString } from 'class-validator';
 import { ALL_OBSERVATION_SPECS } from '@hphii/fhir-domain';
 
-/** Metric keys accepted by POST /observations (CLAUDE.md §7). */
+/** Metric keys accepted by POST /observations (ARCH.md §7). */
 const METRIC_KEYS: string[] = ALL_OBSERVATION_SPECS.map((spec) => spec.key);
 
 /** Channels a reading can arrive through (PoC: SMS intake, in-app, device). */

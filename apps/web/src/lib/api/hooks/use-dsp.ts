@@ -7,7 +7,32 @@ export const dspKeys = {
   all: ['dsp'] as const,
   record: (patientId: string) => ['dsp', 'record', patientId] as const,
   audit: (patientId: string) => ['dsp', 'audit', patientId] as const,
+  globalAudit: () => ['dsp', 'audit', 'global'] as const,
+  globalDocuments: () => ['dsp', 'documents', 'global'] as const,
 };
+
+/** Global list of DocumentReference resources (M6). */
+export function useGlobalDocuments() {
+  return useQuery({
+    queryKey: dspKeys.globalDocuments(),
+    queryFn: async (): Promise<Bundle<DocumentReference>> => {
+      const { data } = await api.get<Bundle<DocumentReference>>('/dsp/documents');
+      return data;
+    },
+  });
+}
+
+/** Global AuditEvent trail (admin only). */
+export function useGlobalAudit(enabled: boolean) {
+  return useQuery({
+    queryKey: dspKeys.globalAudit(),
+    enabled,
+    queryFn: async (): Promise<DspAuditTrail> => {
+      const { data } = await api.get<DspAuditTrail>('/dsp/audit');
+      return data;
+    },
+  });
+}
 
 /** Role-filtered Shared Health Record for a patient (M6, §6). */
 export function useDspRecord(patientId: string | undefined) {

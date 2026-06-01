@@ -1,6 +1,7 @@
 import {
   ALL_ROLES,
   DspAction,
+  Role,
   RoleLabels,
   allowedResourcesForRole,
   canPerform,
@@ -13,6 +14,7 @@ import { EmptyState } from '../../components/ui/empty-state';
 import { Spinner } from '../../components/ui/spinner';
 import { useAuth } from '../../lib/auth/auth-context';
 import { useCapabilityStatement } from '../../lib/api/hooks/use-capability-statement';
+import { useKpis } from '../../lib/api/hooks/use-kpis';
 
 const RESOURCE_LABELS: Record<FilteredResourceType, string> = {
   Patient: 'Patients',
@@ -72,7 +74,10 @@ function ServerStatusCard() {
 
 export function DashboardPage() {
   const { user } = useAuth();
-  if (!user) return null;
+  if (!user || !user.role) return null;
+
+  const kpis = useKpis();
+  const showStats = user.role === Role.ADMIN || user.role === Role.PHYSICIAN;
 
   const resources = allowedResourcesForRole(user.role);
   const allowedActions = Object.values(DspAction).filter((action) =>
@@ -83,7 +88,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          Bonjour, {RoleLabels[user.role]}
+          Bonjour, {RoleLabels[user.role] ?? user.role}
         </h1>
         <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
           <span>{user.email || 'Utilisateur connecté'}</span>
@@ -91,11 +96,24 @@ export function DashboardPage() {
         </p>
       </div>
 
+      {showStats && kpis.data && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatMiniCard label="Cohorte" value={kpis.data.cohortSize} />
+          <StatMiniCard label="Parcours actifs" value={kpis.data.pathwayMix?.total ?? 0} />
+          <StatMiniCard
+            label="Alertes actives"
+            value={(kpis.data.alerts?.pending ?? 0) + (kpis.data.alerts?.escalated ?? 0)}
+            tone={(kpis.data.alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
+          />
+          <StatMiniCard label="Observations" value={kpis.data.monitoring?.observations ?? 0} />
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader
             title="Données accessibles"
-            description="Selon votre rôle (filtre $everything, CLAUDE.md §6)."
+            description=""
           />
           <CardBody>
             {resources.length === 0 ? (
@@ -113,7 +131,7 @@ export function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Actions autorisées" description="Matrice RBAC du DSP (CLAUDE.md §6)." />
+          <CardHeader title="Actions autorisées" description="Matrice RBAC du DSP (ARCH.md §6)." />
           <CardBody>
             {allowedActions.length === 0 ? (
               <EmptyState title="Aucune action autorisée" />
@@ -133,7 +151,7 @@ export function DashboardPage() {
         <ServerStatusCard />
 
         <Card>
-          <CardHeader title="Rôles du système" description="Les 5 rôles RBAC (CLAUDE.md §6)." />
+          <CardHeader title="Rôles du système" description="Les 5 rôles RBAC (ARCH.md §6)." />
           <CardBody>
             <ul className="flex flex-wrap gap-2">
               {ALL_ROLES.map((role) => (
@@ -148,5 +166,32 @@ export function DashboardPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function StatMiniCard({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: number;
+  tone?: 'neutral' | 'warning' | 'danger';
+}) {
+  const tones = {
+    neutral: 'text-gray-900',
+    warning: 'text-amber-600',
+    danger: 'text-red-600',
+  };
+
+  return (
+    <Card>
+      <CardBody className="py-4">
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <p className={`mt-1 text-2xl font-bold ${tones[tone]}`}>
+          {value.toLocaleString('fr-FR')}
+        </p>
+      </CardBody>
+    </Card>
   );
 }

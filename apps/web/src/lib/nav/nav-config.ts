@@ -7,7 +7,7 @@ import {
 export interface NavItem {
   to: string;
   label: string;
-  /** Module tag for display (CLAUDE.md §2). */
+  /** Module tag for display (ARCH.md §2). */
   module: string;
   description: string;
   /**
@@ -25,7 +25,7 @@ export interface NavItem {
 
 /**
  * Full nav catalogue. Order here is the display order in the side nav.
- * Visibility per role is computed from CLAUDE.md §6 — see `visibleNavItems`.
+ * Visibility per role is computed from ARCH.md §6 — see `visibleNavItems`.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {

@@ -35,7 +35,7 @@ import type {
 } from './m5-services.types';
 
 /**
- * M5 — Services médico-techniques (CLAUDE.md §2/§6). Pharmacy (MedicationRequest
+ * M5 — Services médico-techniques (ARCH.md §2/§6). Pharmacy (MedicationRequest
  * order + pharmacist validation + simulated stock), laboratory & imaging
  * (ServiceRequest orders, Lab-Technician DiagnosticReport results), and the
  * abnormal-result notification to the ordering physician. All HAPI access is via
@@ -65,6 +65,7 @@ export class M5ServicesService {
         code: dto.code,
         system: dto.system,
         dosageInstruction: dto.dosageInstruction,
+        priority: dto.priority as MedicationRequest['priority'],
         quantity: dto.quantity,
         quantityUnit: dto.quantityUnit,
         note: dto.note,

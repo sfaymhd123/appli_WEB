@@ -1,5 +1,7 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Queue } from 'bullmq';
 import type { Coding, Encounter, Extension, Patient, Task } from 'fhir/r4';
 import {
   AcknowledgementStatus,
@@ -11,12 +13,17 @@ import {
 } from '@hphii/fhir-domain';
 
 import {
+  ALERT_ESCALATION_QUEUE,
+  ESCALATION_JOB,
+  type EscalationJobData,
+} from '../../core/events';
+import {
   DetectedIssueHelper,
   EncounterHelper,
   FhirService,
   TaskHelper,
 } from '../../core/fhir';
-import { SmsService } from '../../core/sms';
+import { NotificationService } from '../../core/notifications';
 import type { CreateTriageDto } from './dto/create-triage.dto';
 import type { UpdateTriageDto } from './dto/update-triage.dto';
 import { runTriage, type TriageFinding } from './triage-engine';
@@ -49,8 +56,9 @@ const OUTCOME_STATUS: Record<TriageOutcome, Encounter['status']> = {
 /**
  * M2 — Triage. Runs the algorithmic rule engine, then materialises the decision
  * as a FHIR Encounter (class emergency/ambulatory) + a Task carrying the
- * priority. A P1 (critical) result also raises a DetectedIssue and SMS-alerts
- * the referring nurse (CLAUDE.md §2/§8). All HAPI access is via FhirService.
+ * priority. A P1 (critical) result also raises a DetectedIssue and alerts
+ * the referring nurse (SMS + in-app) with a 15-min escalation timer. All HAPI
+ * access is via FhirService; notifications via NotificationService.
  */
 @Injectable()
 export class M2TriageService {
@@ -58,8 +66,10 @@ export class M2TriageService {
 
   constructor(
     private readonly fhir: FhirService,
-    private readonly sms: SmsService,
+    private readonly notifications: NotificationService,
     private readonly config: ConfigService,
+    @InjectQueue(ALERT_ESCALATION_QUEUE)
+    private readonly escalationQueue: Queue<EscalationJobData>,
   ) {}
 
   /** Triage a patient: compute priority, create Encounter + Task, alert if P1. */
@@ -73,6 +83,8 @@ export class M2TriageService {
         diastolicBp: dto.diastolicBp,
         heartRate: dto.heartRate,
         glucose: dto.glucose,
+        respiratoryRate: dto.respiratoryRate,
+        temperature: dto.temperature,
       },
       symptomSeverity: dto.symptomSeverity,
     });
@@ -211,7 +223,7 @@ export class M2TriageService {
     return { date: dateStr, total: entries.length, entries };
   }
 
-  /** Raise a high-severity DetectedIssue for a P1 triage and SMS the referring nurse. */
+  /** Raise a high-severity DetectedIssue for a P1 triage and alert the referring nurse. */
   private async createCriticalAlert(
     patientRef: string,
     findings: TriageFinding[],
@@ -234,17 +246,51 @@ export class M2TriageService {
       }),
     );
 
-    // PHI-safe (CLAUDE.md §9): reference the DetectedIssue id + priority only.
+    // PHI-safe (ARCH.md §9): reference the DetectedIssue id + priority only.
     const issueRef = detectedIssue.id ? `DetectedIssue/${detectedIssue.id}` : 'DetectedIssue';
-    const sms = await this.sms.send({
+    const dispatch = await this.notifications.notify({
+      kind: 'alert.created',
       to: this.config.get<string>('referringNursePhone') ?? '',
       body: `ALERTE P1 (critique) — nouvelle détection ${issueRef}. Acquittement requis sous ${escalationMinutes} min.`,
+      detectedIssueId: detectedIssue.id,
+      patient: patientRef,
+      severity: DetectedIssueSeverity.HIGH,
+      urgent: true,
     });
 
+    if (detectedIssue.id) await this.scheduleEscalation(detectedIssue.id);
+
     this.logger.warn(
-      `P1 triage raised DetectedIssue/${detectedIssue.id ?? '?'} + SMS to referring nurse via ${sms.provider}`,
+      `P1 triage raised DetectedIssue/${detectedIssue.id ?? '?'} + alerts via ${dispatch.smsProvider ?? 'none'}`,
     );
-    return { detectedIssue, sms };
+
+    return {
+      detectedIssue,
+      sms: {
+        provider: dispatch.smsProvider ?? 'none',
+        to: this.config.get<string>('referringNursePhone') ?? '',
+        accepted: dispatch.smsAccepted,
+      },
+    };
+  }
+
+  /** Enqueue the delayed escalation job keyed by the DetectedIssue id. */
+  private async scheduleEscalation(detectedIssueId: string): Promise<void> {
+    const seconds = this.config.get<number>('alertEscalationSeconds') ?? 0;
+    const delay = seconds > 0 ? seconds * 1000 : (this.config.get<number>('alertEscalationMinutes') ?? 15) * 60_000;
+
+    try {
+      await this.escalationQueue.add(
+        ESCALATION_JOB,
+        { detectedIssueId },
+        { jobId: `alert-${detectedIssueId}`, delay, removeOnComplete: true, removeOnFail: false },
+      );
+      this.logger.warn(`Escalation armed for DetectedIssue/${detectedIssueId} (+${delay}ms)`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to arm escalation for DetectedIssue/${detectedIssueId}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+    }
   }
 
   /** First Task whose focus is this Encounter (the triage Task), if any. */

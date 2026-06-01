@@ -8,7 +8,7 @@ import { M3ParcoursService } from './m3-parcours.service';
 
 /**
  * M3 — Parcours chronique (CarePlan) & épisodique (Encounter), plus the
- * CarePlan-review listener bridging M4's HbA1c>7 event (CLAUDE.md §2/§8).
+ * CarePlan-review listener bridging M4's HbA1c>7 event (ARCH.md §2/§8).
  */
 @Module({
   imports: [FhirModule, EventsModule],

@@ -58,7 +58,7 @@ import type {
  * chronic/episodic bifurcation as FHIR resources via FhirService:
  *   - chronic  → CarePlan + Goal(s) + CareTeam + addressed Condition(s) + Flag
  *   - episodic → Encounter + encounter-diagnosis Condition(s)
- * Reacts to the M4 "CarePlan review needed" event (HbA1c > 7, CLAUDE.md §8) by
+ * Reacts to the M4 "CarePlan review needed" event (HbA1c > 7, ARCH.md §8) by
  * marking active plans for review. All HAPI access is via FhirService (§9).
  */
 @Injectable()
@@ -306,7 +306,7 @@ export class M3ParcoursService {
     };
   }
 
-  /* ----- M4 event reaction (CLAUDE.md §8) ----- */
+  /* ----- M4 event reaction (ARCH.md §8) ----- */
 
   /**
    * React to a "CarePlan review needed" event: mark every active CarePlan of the

@@ -11,7 +11,7 @@ export interface CreateObservationRequest {
   value: number;
   source?: ObservationSource;
   effectiveDateTime?: string;
-  /** Offline-replay idempotency key (CLAUDE.md §8); set by the submit hook. */
+  /** Offline-replay idempotency key (ARCH.md §8); set by the submit hook. */
   clientRequestId?: string;
 }
 
