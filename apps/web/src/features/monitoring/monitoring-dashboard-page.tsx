@@ -12,6 +12,7 @@ import {
   TextField,
   useToast,
 } from '../../components/ui';
+import { cn } from '../../lib/utils/cn';
 import { errorMessage } from '../../lib/api/error';
 import { useAlertStream } from '../../lib/api/hooks/use-alert-stream';
 import {
@@ -57,7 +58,7 @@ function groupByUnit(series: VitalsSeries[]): { unit: string; series: VitalsSeri
   return [...map.entries()].map(([unit, list]) => ({ unit, series: list }));
 }
 
-export function MonitoringDashboardPage() {
+export function MonitoringDashboardPage({ mode }: { mode?: 'alerts' | 'vitals' }) {
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -69,6 +70,10 @@ export function MonitoringDashboardPage() {
   const [patientInput, setPatientInput] = useState('');
   const [vitalsPatient, setVitalsPatient] = useState('');
   const vitals = useVitalsTrend(vitalsPatient, vitalsPatient !== '');
+
+  // Default to showing everything if no mode is specified (fallback)
+  const showAlerts = !mode || mode === 'alerts';
+  const showVitals = !mode || mode === 'vitals';
 
   // Instant toasts via SSE; the polled query above remains the source of truth.
   useAlertStream(
@@ -111,119 +116,143 @@ export function MonitoringDashboardPage() {
     if (!id) return;
     setPatientInput(id);
     setVitalsPatient(id);
+    // If we are in alerts mode, we might want to switch to vitals, 
+    // but for now we just show them in the same page if both are active.
   }
 
   const activeAlerts = alerts.data?.alerts ?? [];
   const groups = useMemo(() => groupByUnit(vitals.data?.series ?? []), [vitals.data]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Monitoring &amp; Alertes</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Module M4 — constantes (LOINC/UCUM), moteur de seuils (§7) et escalade automatique à
-            15 min (§8).
+          <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+            {mode === 'alerts' ? 'Gestion des Alertes' : mode === 'vitals' ? 'Suivi des Constantes' : 'Monitoring & Alertes'}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500 font-medium">
+            {mode === 'alerts' 
+              ? 'Surveillance des anomalies critiques et gestion des escalades (15 min).'
+              : 'Analyse des tendances physiologiques et historique des mesures (LOINC/UCUM).'}
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader
-              title="Alertes actives"
-              description="Anomalies détectées non résolues, les plus récentes en tête. Actualisation live."
-              action={
-                <Badge tone={activeAlerts.length ? 'danger' : 'success'}>
-                  {activeAlerts.length} active(s)
-                </Badge>
-              }
-            />
-            <CardBody>
-              {alerts.isLoading ? (
-                <div className="flex justify-center py-12">
-                  <Spinner size="lg" className="text-clinical-600" />
-                </div>
-              ) : alerts.isError ? (
-                <EmptyState title="Alertes indisponibles" description={errorMessage(alerts.error)} />
-              ) : activeAlerts.length === 0 ? (
-                <EmptyState
-                  title="Aucune alerte active"
-                  description="Les constantes hors seuil déclencheront ici une alerte avec compte à rebours d’escalade."
-                />
-              ) : (
-                <ul className="space-y-3">
-                  {activeAlerts.map((alert) => (
-                    <AlertCard
-                      key={alert.id}
-                      alert={alert}
-                      now={now}
-                      busy={acknowledge.isPending || resolve.isPending}
-                      onAcknowledge={() => onAcknowledge(alert.id)}
-                      onResolve={() => onResolve(alert.id)}
-                      onShowVitals={() => showPatientVitals(alert.patientReference)}
-                    />
-                  ))}
-                </ul>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-
-        <div className="space-y-6">
-          {user?.role === Role.ADMIN && <SmsLogViewer />}
-        </div>
-      </div>
-
-      <Card>
-        <CardHeader
-          title="Tendance des constantes"
-          description="Séries temporelles par patient, avec lignes de seuil §7."
-        />
-        <CardBody className="space-y-5">
-          <form className="flex flex-wrap items-end gap-3" onSubmit={onLoadVitals}>
-            <div className="min-w-[16rem] flex-1">
-              <TextField
-                name="vitalsPatient"
-                label="Identifiant FHIR du patient"
-                value={patientInput}
-                onChange={(e) => setPatientInput(e.target.value)}
-                autoComplete="off"
+      {showAlerts && (
+        <div className={cn(
+          "grid grid-cols-1 gap-6",
+          user?.role === Role.ADMIN ? "lg:grid-cols-3" : "lg:grid-cols-1"
+        )}>
+          <div className={user?.role === Role.ADMIN ? "lg:col-span-2" : ""}>
+            <Card hover>
+              <CardHeader
+                tone="danger"
+                title="Alertes actives"
+                description="Anomalies détectées non résolues, les plus récentes en tête."
+                action={
+                  <Badge tone={activeAlerts.length ? 'danger' : 'success'} className="animate-pulse">
+                    {activeAlerts.length} active(s)
+                  </Badge>
+                }
               />
-            </div>
-            <Button type="submit" variant="secondary" loading={vitals.isFetching}>
-              Afficher
-            </Button>
-          </form>
+              <CardBody>
+                {alerts.isLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Spinner size="lg" className="text-clinical-600" />
+                  </div>
+                ) : alerts.isError ? (
+                  <EmptyState title="Alertes indisponibles" description={errorMessage(alerts.error)} />
+                ) : activeAlerts.length === 0 ? (
+                  <EmptyState
+                    title="Aucune alerte active"
+                    description="Le système est stable. Les anomalies de constantes apparaîtront ici."
+                  />
+                ) : (
+                  <ul className="space-y-4">
+                    {activeAlerts.map((alert) => (
+                      <AlertCard
+                        key={alert.id}
+                        alert={alert}
+                        now={now}
+                        busy={acknowledge.isPending || resolve.isPending}
+                        onAcknowledge={() => onAcknowledge(alert.id)}
+                        onResolve={() => onResolve(alert.id)}
+                        onShowVitals={() => showPatientVitals(alert.patientReference)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </CardBody>
+            </Card>
+          </div>
 
-          {vitalsPatient === '' ? (
-            <p className="text-sm text-gray-500">
-              Saisissez un identifiant patient (ou cliquez « Constantes » sur une alerte).
-            </p>
-          ) : vitals.isLoading ? (
-            <div className="flex justify-center py-12">
-              <Spinner size="lg" className="text-clinical-600" />
-            </div>
-          ) : vitals.isError ? (
-            <EmptyState title="Constantes indisponibles" description={errorMessage(vitals.error)} />
-          ) : groups.length === 0 ? (
-            <EmptyState
-              title="Aucune mesure"
-              description={`Aucune observation enregistrée pour le patient ${vitalsPatient}.`}
-            />
-          ) : (
+          {user?.role === Role.ADMIN && (
             <div className="space-y-6">
-              {groups.map((group) => (
-                <div key={group.unit}>
-                  <h3 className="mb-1 text-sm font-semibold text-gray-700">{group.unit}</h3>
-                  <VitalsChart unit={group.unit} series={group.series} />
-                </div>
-              ))}
+              <SmsLogViewer />
             </div>
           )}
-        </CardBody>
-      </Card>
+        </div>
+      )}
+
+      {showVitals && (
+        <Card hover>
+          <CardHeader
+            tone="clinical"
+            title="Tendance des constantes"
+            description="Visualisation des séries temporelles avec lignes de seuil nationales."
+          />
+          <CardBody className="space-y-6">
+            <form className="flex flex-wrap items-end gap-3" onSubmit={onLoadVitals}>
+              <div className="min-w-[20rem] flex-1">
+                <TextField
+                  name="vitalsPatient"
+                  label="Identifiant du patient"
+                  placeholder="ex: pat-1986"
+                  value={patientInput}
+                  onChange={(e) => setPatientInput(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <Button type="submit" variant="secondary" loading={vitals.isFetching} className="rounded-xl h-12">
+                Afficher les courbes
+              </Button>
+            </form>
+
+            {vitalsPatient === '' ? (
+              <div className="py-12 text-center">
+                <p className="text-sm text-gray-400 font-medium italic">
+                  Saisissez un identifiant patient ci-dessus pour générer les graphiques.
+                </p>
+              </div>
+            ) : vitals.isLoading ? (
+              <div className="flex justify-center py-12">
+                <Spinner size="lg" className="text-clinical-600" />
+              </div>
+            ) : vitals.isError ? (
+              <EmptyState title="Constantes indisponibles" description={errorMessage(vitals.error)} />
+            ) : groups.length === 0 ? (
+              <EmptyState
+                title="Aucune mesure"
+                description={`Aucune observation enregistrée pour le patient ${vitalsPatient}.`}
+              />
+            ) : (
+              <div className="space-y-10">
+                {groups.map((group) => (
+                  <div key={group.unit} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-clinical-500" />
+                      <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{group.unit}</h3>
+                    </div>
+                    <div className="rounded-2xl border border-gray-100 bg-gray-50/30 p-4">
+                      <VitalsChart unit={group.unit} series={group.series} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 }

@@ -62,12 +62,12 @@ export default function App() {
             </RequireRole>
           }
         />
-        {/* M4 monitoring dashboard — Observation + DetectedIssue both live here. */}
+        {/* M4 monitoring dashboard — Observation + DetectedIssue now split by mode. */}
         <Route
           path="/observations"
           element={
             <RequireResource resource="Observation">
-              <MonitoringDashboardPage />
+              <MonitoringDashboardPage mode="vitals" />
             </RequireResource>
           }
         />
@@ -75,7 +75,7 @@ export default function App() {
           path="/alerts"
           element={
             <RequireResource resource="DetectedIssue">
-              <MonitoringDashboardPage />
+              <MonitoringDashboardPage mode="alerts" />
             </RequireResource>
           }
         />

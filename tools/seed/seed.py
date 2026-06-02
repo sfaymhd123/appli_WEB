@@ -166,16 +166,22 @@ class Seeder:
     # -- builders (in dependency order: subjects before referrers) ----------
     def build_patients(self) -> None:
         for r in self.sheets["Patients"].itertuples(index=False):
+            # Deterministic regime assignment based on ID for PoC diversity
+            # Morocco mix simulation: 50% RAMED, 40% AMO, 10% Private
+            pid_int = int(r.patient_id)
+            regime = "RAMED" if pid_int % 10 < 5 else "AMO" if pid_int % 10 < 9 else "Private"
+
             ext = [
                 {"url": URL_ZONE, "valueString": str(r.residence_area)},
                 {"url": URL_RISK, "valueString": str(r.risk_group)},
+                {"url": "https://hphii.ma/fhir/coverage-scheme", "valueString": regime},
             ]
             self.add({
                 "resourceType": "Patient",
-                "id": f"pat-{int(r.patient_id)}",
+                "id": f"pat-{pid_int}",
                 "extension": ext,
-                "identifier": [{"system": URL_PATIENT_ID, "value": str(int(r.patient_id))}],
-                "name": [{"family": f"Patient-{int(r.patient_id)}", "given": ["Anonyme"]}],
+                "identifier": [{"system": URL_PATIENT_ID, "value": str(pid_int)}],
+                "name": [{"family": f"Patient-{pid_int}", "given": ["Anonyme"]}],
                 "gender": "female" if r.sex == "F" else "male",
                 "birthDate": str(int(r.birth_year)),
             })

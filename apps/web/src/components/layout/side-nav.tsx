@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import * as LucideIcons from 'lucide-react';
 import type { Role } from '@hphii/fhir-domain';
 import { visibleNavItems } from '../../lib/nav/nav-config';
 import { cn } from '../../lib/utils/cn';
@@ -27,11 +28,16 @@ export function SideNav({ role, open, onNavigate }: SideNavProps) {
       <nav
         aria-label="Navigation principale"
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto border-r border-gray-200 bg-white px-3 py-4 transition-transform md:static md:z-auto md:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto border-r border-clinical-800/50 bg-clinical-900 px-4 py-8 transition-transform md:static md:z-auto md:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <ul className="space-y-1">
+        <div className="mb-8 px-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-clinical-400">
+            Navigation Système
+          </p>
+        </div>
+        <ul className="space-y-1.5">
           {items.map((item) => (
             <li key={item.to}>
               <NavLink
@@ -40,20 +46,41 @@ export function SideNav({ role, open, onNavigate }: SideNavProps) {
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
-                    'flex min-h-tap flex-col justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    'group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-300',
                     isActive
-                      ? 'bg-clinical-50 text-clinical-800'
-                      : 'text-gray-700 hover:bg-gray-100',
+                      ? 'bg-clinical-700 text-white shadow-lg shadow-black/20 ring-1 ring-white/10'
+                      : 'text-clinical-200 hover:bg-white/5 hover:text-white',
                   )
                 }
               >
-                <span>{item.label}</span>
-                <span className="text-[0.7rem] font-normal text-gray-400">{item.module}</span>
+                <NavIcon iconName={item.icon} className={cn(
+                  "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110",
+                  "opacity-70 group-hover:opacity-100"
+                )} />
+                <div className="flex flex-col">
+                  <span>{item.label}</span>
+                  <span className="text-[9px] font-medium uppercase tracking-tight opacity-40 group-hover:opacity-60">
+                    {item.module}
+                  </span>
+                </div>
               </NavLink>
             </li>
           ))}
         </ul>
+        
+        <div className="mt-12 px-3">
+          <div className="rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+            <p className="text-[10px] font-bold text-clinical-400 uppercase tracking-wider">Hôpital Provincial</p>
+            <p className="mt-1 text-xs font-medium text-white">Hassan II Settat</p>
+          </div>
+        </div>
       </nav>
     </>
   );
+}
+
+function NavIcon({ iconName, className }: { iconName: string; className?: string }) {
+  const Icon = (LucideIcons as any)[iconName] as LucideIcons.LucideIcon;
+  if (!Icon) return <LucideIcons.Circle className={className} />;
+  return <Icon className={className} />;
 }

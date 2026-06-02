@@ -23,6 +23,7 @@ import {
   patientMrn,
   patientPhone,
   patientRiskGroup,
+  patientCoverage,
   patientZone,
 } from './patient-display';
 
@@ -102,6 +103,7 @@ export function PatientDetailPage() {
                     <Detail label="Identifiant HPHII" value={patientMrn(patient)} mono />
                     <Detail label="Sexe" value={gender} />
                     <Detail label="Année de naissance" value={patient.birthDate} />
+                    <Detail label="Régime de couverture" value={patientCoverage(patient)} />
                     <Detail label="Zone de résidence" value={patientZone(patient)} />
                     <Detail label="Téléphone" value={patientPhone(patient)} />
                   </dl>

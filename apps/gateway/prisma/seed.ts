@@ -14,7 +14,7 @@ const prisma = new PrismaClient();
 const SEED_PASSWORD = process.env.SEED_PASSWORD ?? 'Passw0rd!';
 
 const SEED_USERS: ReadonlyArray<{ email: string; role: Role }> = [
-  { email: 'physician@hphii.ma', role: Role.Physician },
+  { email: 'medecin@hphii.ma', role: Role.Physician },
   { email: 'nurse@hphii.ma', role: Role.Nurse },
   { email: 'admin@hphii.ma', role: Role.Admin },
   { email: 'pharmacist@hphii.ma', role: Role.Pharmacist },

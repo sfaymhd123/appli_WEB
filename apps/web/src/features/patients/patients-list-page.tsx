@@ -25,6 +25,7 @@ import {
   patientDisplayName,
   patientMrn,
   patientRiskGroup,
+  patientCoverage,
   patientZone,
 } from './patient-display';
 
@@ -71,6 +72,14 @@ export function PatientsListPage() {
       render: (p) => {
         const z = patientZone(p);
         return z ? <Badge tone="neutral">{z}</Badge> : '—';
+      },
+    },
+    {
+      key: 'scheme',
+      header: 'Régime',
+      render: (p) => {
+        const s = patientCoverage(p);
+        return s ? <Badge tone="neutral">{s}</Badge> : '—';
       },
     },
     {
