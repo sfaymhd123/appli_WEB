@@ -74,6 +74,10 @@ export function patientRiskGroup(patient: Patient): string | undefined {
   return extensionValue(patient, HphiiUrls.RISK_GROUP);
 }
 
+export function patientCoverage(patient: Patient): string | undefined {
+  return extensionValue(patient, HphiiUrls.COVERAGE_SCHEME);
+}
+
 export function patientPhone(patient: Patient): string | undefined {
   return patient.telecom?.find((t) => t.system === 'phone')?.value;
 }

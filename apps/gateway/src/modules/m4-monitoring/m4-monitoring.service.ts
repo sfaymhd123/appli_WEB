@@ -242,7 +242,7 @@ export class M4MonitoringService {
       severity: issue.severity,
       urgent: true,
     });
-    this.logger.warn(`${issueRef} ESCALATED → senior physician notified`);
+    this.logger.warn(`${issueRef} ESCALATED → médecin senior notifié`);
   }
 
   /* ----- private helpers ----- */

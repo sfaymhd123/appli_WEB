@@ -10,6 +10,8 @@ export interface NavItem {
   /** Module tag for display (ARCH.md §2). */
   module: string;
   description: string;
+  /** Lucide icon name for display. */
+  icon: string;
   /**
    * Resource this section reads. Visibility is driven by the §6 role →
    * $everything filter: a role sees the item only if this resource is in its
@@ -33,12 +35,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Tableau de bord',
     module: 'Accueil',
     description: 'Vue d’ensemble du dossier de santé partagé.',
+    icon: 'LayoutDashboard',
   },
   {
     to: '/patients',
     label: 'Patients',
     module: 'M1',
     description: 'Identité patient, couverture RAMED/AMO.',
+    icon: 'Users',
     resource: 'Patient',
   },
   {
@@ -46,12 +50,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Dossier partagé (DSP)',
     module: 'M6',
     description: 'Consultation du dossier filtrée par rôle (RBAC §6).',
+    icon: 'FileHeart',
   },
   {
     to: '/triage',
     label: 'Triage',
     module: 'M2',
     description: 'Priorisation algorithmique (P1–P5) et file d’attente.',
+    icon: 'Stethoscope',
     roles: [Role.NURSE, Role.PHYSICIAN],
   },
   {
@@ -59,6 +65,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Monitoring',
     module: 'M4',
     description: 'Constantes vitales et mesures (LOINC/UCUM).',
+    icon: 'Activity',
     resource: 'Observation',
   },
   {
@@ -66,6 +73,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Alertes',
     module: 'M4',
     description: 'Anomalies détectées et escalade à 15 min.',
+    icon: 'BellRing',
     resource: 'DetectedIssue',
   },
   {
@@ -73,6 +81,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Saisie SMS',
     module: 'M4',
     description: 'Relevé patient bas débit (SMS) alimentant le moteur de seuils.',
+    icon: 'MessageSquare',
     roles: [Role.NURSE, Role.PHYSICIAN],
   },
   {
@@ -80,6 +89,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Parcours de soins',
     module: 'M3',
     description: 'Parcours chronique (plan de soins) et épisodique (épisode aigu).',
+    icon: 'ClipboardList',
     roles: [Role.PHYSICIAN, Role.NURSE],
   },
   {
@@ -87,6 +97,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Documents',
     module: 'M6',
     description: 'Comptes rendus et pièces du dossier.',
+    icon: 'Files',
     resource: 'DocumentReference',
   },
   {
@@ -95,6 +106,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     module: 'M5',
     description:
       'Pharmacie, laboratoire et imagerie : prescriptions, file de validation et résultats.',
+    icon: 'Microscope',
     roles: [Role.PHYSICIAN, Role.PHARMACIST, Role.LAB_TECHNICIAN],
   },
   {
@@ -103,6 +115,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     module: 'KPI',
     description:
       'Tableau de bord équilibré : cohorte, parcours, triage, alertes et accès au DSP.',
+    icon: 'BarChart3',
     roles: [Role.ADMIN, Role.PHYSICIAN],
   },
   {
@@ -110,6 +123,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: 'Journal d’audit',
     module: 'M6',
     description: 'Traçabilité des accès au DSP (IHE ATNA).',
+    icon: 'ShieldCheck',
     resource: 'AuditEvent',
   },
 ];
