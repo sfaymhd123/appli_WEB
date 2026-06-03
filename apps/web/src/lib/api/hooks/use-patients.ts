@@ -21,9 +21,10 @@ export function hasPatientFilter(filters: PatientSearchFilters): boolean {
 }
 
 /** Search patients (M1). Loads a default list if no filters are provided. */
-export function usePatientSearch(filters: PatientSearchFilters) {
+export function usePatientSearch(filters: PatientSearchFilters, enabled = true) {
   return useQuery({
     queryKey: patientKeys.list(filters),
+    enabled,
     queryFn: async (): Promise<PatientSearchResult> => {
       const { data } = await api.get<PatientSearchResult>('/patients', { params: filters });
       return data;

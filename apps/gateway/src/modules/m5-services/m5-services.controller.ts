@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import type { MedicationRequest, ServiceRequest } from 'fhir/r4';
 import { Role } from '@hphii/fhir-domain';
@@ -14,6 +15,7 @@ import { Role } from '@hphii/fhir-domain';
 import { Audit } from '../../core/audit/decorators/audit.decorator';
 import { Roles } from '../../core/rbac/decorators/roles.decorator';
 import type { DomainEvent } from '../../core/events';
+import type { AuthenticatedRequest } from '../../core/auth/auth.types';
 import { CreateDiagnosticReportDto } from './dto/create-diagnostic-report.dto';
 import { CreateMedicationRequestDto } from './dto/create-medication-request.dto';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
@@ -50,8 +52,9 @@ export class M5ServicesController {
   @HttpCode(HttpStatus.CREATED)
   createMedicationRequest(
     @Body() dto: CreateMedicationRequestDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<MedicationOrderResult> {
-    return this.services.createMedicationRequest(dto);
+    return this.services.createMedicationRequest(dto, `Practitioner/${req.user.sub}`);
   }
 
   /** Validate (approve) or reject a draft prescription (§6: Physician/Pharmacist). */
@@ -94,13 +97,14 @@ export class M5ServicesController {
 
   /** Record a result → Observation + DiagnosticReport (§6: Lab-Technician only). */
   @Post('diagnostic-reports')
-  @Roles(Role.LAB_TECHNICIAN)
+  @Roles(Role.LAB_TECHNICIAN, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
   createDiagnosticReport(
     @Body() dto: CreateDiagnosticReportDto,
+    @Req() req: AuthenticatedRequest,
   ): Promise<DiagnosticReportResult> {
-    return this.services.createDiagnosticReport(dto);
+    return this.services.createDiagnosticReport(dto, `Practitioner/${req.user.sub}`);
   }
 
   /** List diagnostic reports (most-recent first). */

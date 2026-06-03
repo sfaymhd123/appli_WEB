@@ -51,6 +51,7 @@ const SERVICE_CATEGORY_SNOMED_DISPLAY: Record<ServiceCategory, string> = {
 
 export interface MedicationRequestInput {
   patientRef: string;
+  requesterRef?: string;
   medication: string;
   code?: string;
   system?: string;
@@ -75,6 +76,7 @@ export function buildMedicationRequestResource(input: MedicationRequestInput): M
     status: 'draft',
     intent: 'order',
     subject: { reference: input.patientRef },
+    requester: input.requesterRef ? { reference: input.requesterRef } : undefined,
     medicationCodeableConcept,
     priority: input.priority,
     authoredOn: input.authoredOn,
@@ -228,6 +230,7 @@ export function buildResultObservation(input: ResultObservationInput): Observati
 
 export interface DiagnosticReportInput {
   patientRef: string;
+  performerRef?: string;
   category: ServiceCategory;
   loinc: string;
   display?: string;
@@ -248,6 +251,7 @@ export function buildDiagnosticReportResource(input: DiagnosticReportInput): Dia
       text: input.display,
     },
     subject: { reference: input.patientRef },
+    performer: input.performerRef ? [{ reference: input.performerRef }] : undefined,
     issued: input.issued,
     effectiveDateTime: input.issued,
     extension: [resultInterpretationExtension(input.abnormal)],

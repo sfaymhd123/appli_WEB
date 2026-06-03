@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Calendar } from 'lucide-react';
 import type { CoverageScheme } from '@hphii/fhir-domain';
 import {
   Badge,
@@ -15,6 +16,7 @@ import {
 } from '../../components/ui';
 import { errorMessage } from '../../lib/api/error';
 import { useAddCoverage, usePatient } from '../../lib/api/hooks/use-patients';
+import { useCreateAppointment } from '../../lib/api/hooks/use-appointments';
 import type { CoverageResult } from '../../lib/api/types/patient';
 import {
   COVERAGE_SCHEME_OPTIONS,
@@ -32,10 +34,15 @@ export function PatientDetailPage() {
   const { toast } = useToast();
   const patientQuery = usePatient(id);
   const addCoverage = useAddCoverage();
+  const createAppointment = useCreateAppointment();
 
   const [scheme, setScheme] = useState('');
   const [memberId, setMemberId] = useState('');
   const [coverage, setCoverage] = useState<CoverageResult | null>(null);
+
+  const [aptDate, setAptDate] = useState('');
+  const [aptTime, setAptTime] = useState('');
+  const [aptDesc, setAptDesc] = useState('');
 
   async function onAddCoverage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -50,6 +57,26 @@ export function PatientDetailPage() {
         result.eligibility.active ? 'Couverture active.' : 'Couverture inactive.',
         result.eligibility.active ? 'success' : 'warning',
       );
+    } catch (error) {
+      toast(errorMessage(error), 'error');
+    }
+  }
+
+  async function onBookAppointment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!id || !aptDate || !aptTime) return;
+
+    try {
+      const start = new Date(`${aptDate}T${aptTime}`).toISOString();
+      await createAppointment.mutateAsync({
+        patientId: id,
+        start,
+        description: aptDesc.trim() || undefined,
+      });
+      toast('Rendez-vous programmé et SMS envoyé au patient.', 'success');
+      setAptDate('');
+      setAptTime('');
+      setAptDesc('');
     } catch (error) {
       toast(errorMessage(error), 'error');
     }
@@ -153,6 +180,46 @@ export function PatientDetailPage() {
                       </div>
                     </div>
                   )}
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardHeader
+                  title="Planifier un rendez-vous"
+                  description="Module SMS — Notifier le patient de sa prochaine consultation."
+                />
+                <CardBody>
+                  <form className="grid gap-4 sm:grid-cols-2" onSubmit={onBookAppointment}>
+                    <TextField
+                      type="date"
+                      label="Date"
+                      required
+                      value={aptDate}
+                      onChange={(e) => setAptDate(e.target.value)}
+                    />
+                    <TextField
+                      type="time"
+                      label="Heure"
+                      required
+                      value={aptTime}
+                      onChange={(e) => setAptTime(e.target.value)}
+                    />
+                    <div className="sm:col-span-2">
+                      <TextField
+                        label="Motif / Description"
+                        placeholder="Ex: Suivi tensionnel…"
+                        value={aptDesc}
+                        onChange={(e) => setAptDesc(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <Button type="submit" loading={createAppointment.isPending} className="w-full sm:w-auto">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Confirmer et envoyer SMS
+                      </Button>
+                    </div>
+                  </form>
                 </CardBody>
               </Card>
             </>

@@ -75,12 +75,15 @@ const LIVE_COUNTS: Record<string, number> = {
   CarePlan: 2,
   Encounter: 5,
   Observation: 10,
+  MedicationRequest: 1,
 };
 
 /** A search mock that dispatches on (resourceType, _summary) for the live path. */
 function liveSearch(): jest.Mock {
   return jest.fn(async (type: string, params: Record<string, unknown> = {}) => {
-    if (params._summary === 'count') return countset(LIVE_COUNTS[type] ?? 0);
+    if (params._summary === 'count' || params._summary === 'true') {
+      return countset(LIVE_COUNTS[type] ?? 0);
+    }
     switch (type) {
       case 'Patient':
         return searchset([
@@ -116,7 +119,18 @@ function liveSearch(): jest.Mock {
 
 function makeService(search: jest.Mock): AnalyticsService {
   const fhir = { search } as unknown as FhirService;
-  return new AnalyticsService(fhir);
+  const prisma = {
+    user: {
+      count: jest.fn().mockResolvedValue(5),
+      groupBy: jest.fn().mockResolvedValue([
+        { role: Role.PHYSICIAN, _count: { id: 2 } },
+        { role: Role.NURSE, _count: { id: 1 } },
+        { role: Role.ADMIN, _count: { id: 1 } },
+        { role: Role.PHARMACIST, _count: { id: 1 } },
+      ]),
+    },
+  } as unknown as any;
+  return new AnalyticsService(fhir, prisma);
 }
 
 describe('AnalyticsService', () => {
@@ -125,10 +139,11 @@ describe('AnalyticsService', () => {
   describe('getKpis (live aggregation)', () => {
     it('aggregates cohort, pathway, triage, monitoring, results, alerts and DSP access', async () => {
       const service = makeService(liveSearch());
-      const kpis = await service.getKpis();
+      const kpis = await service.getKpis(Role.ADMIN, 'admin-id');
 
       expect(kpis.source).toBe('live');
       expect(kpis.cohortSize).toBe(3);
+      expect(kpis.staffCount).toBe(5);
 
       // demographics: 2 Rural, 1 Urban; 1 Elderly, 1 Chronic-risk, 1 Standard
       expect(kpis.demographics.byZone).toMatchObject({ Rural: 2, Urban: 1, 'Peri-urban': 0 });
@@ -159,6 +174,9 @@ describe('AnalyticsService', () => {
       // results: 1 of 4 abnormal
       expect(kpis.results).toEqual({ total: 4, abnormal: 1, abnormalPct: 25 });
 
+      // medications: 1 total
+      expect(kpis.medications).toEqual({ total: 1 });
+
       // alerts: ack=1, escalated=1, pending=2 (one explicit + one missing) → total 4
       expect(kpis.alerts).toEqual({
         total: 4,
@@ -185,7 +203,7 @@ describe('AnalyticsService', () => {
 
     it('uses _summary=count for the cohort/pathway/monitoring totals', async () => {
       const search = liveSearch();
-      await makeService(search).getKpis();
+      await makeService(search).getKpis(Role.ADMIN, 'admin-id');
 
       const countCalls = search.mock.calls.filter(([, params]) => params?._summary === 'count');
       const countedTypes = countCalls.map(([type]) => type);
@@ -198,6 +216,8 @@ describe('AnalyticsService', () => {
       source: 'seed',
       generatedAt: '2026-05-30T15:40:00+00:00',
       cohortSize: 371,
+      staffCount: 15,
+      staffDistribution: { Physician: 5, Nurse: 5, Admin: 2, Pharmacist: 2, 'Lab-Technician': 1 },
       demographics: {
         byZone: { Rural: 100, Urban: 200, 'Peri-urban': 71 },
         byRiskGroup: { Standard: 200, 'Chronic-risk': 100, Elderly: 50, Pediatric: 21 },
@@ -206,6 +226,7 @@ describe('AnalyticsService', () => {
       triage: { byPriority: { P1: 51, P2: 140, P3: 303, P4: 164, P5: 0 }, total: 658, criticalPct: 7.8 },
       monitoring: { observations: 10440 },
       results: { total: 553, abnormal: 94, abnormalPct: 17 },
+      medications: { total: 100 },
       alerts: {
         total: 626,
         acknowledged: 445,
@@ -223,7 +244,7 @@ describe('AnalyticsService', () => {
       loadSeedKpisMock.mockReturnValue(seedReport);
       const search = jest.fn().mockRejectedValue(new Error('HAPI unreachable'));
 
-      const kpis = await makeService(search).getKpis();
+      const kpis = await makeService(search).getKpis(Role.ADMIN, 'admin-id');
 
       expect(kpis).toBe(seedReport);
       expect(loadSeedKpisMock).toHaveBeenCalledTimes(1);
@@ -235,17 +256,19 @@ describe('AnalyticsService', () => {
         params._summary === 'count' ? countset(0) : searchset([]),
       );
 
-      const kpis = await makeService(search).getKpis();
+      const kpis = await makeService(search).getKpis(Role.ADMIN, 'admin-id');
 
       expect(kpis.source).toBe('seed');
       expect(loadSeedKpisMock).toHaveBeenCalledTimes(1);
     });
 
-    it('rethrows the live error when no seed file is available', async () => {
+    it('returns a zero-filled live report when no seed file is available (recovery)', async () => {
       loadSeedKpisMock.mockReturnValue(null);
       const search = jest.fn().mockRejectedValue(new Error('HAPI unreachable'));
 
-      await expect(makeService(search).getKpis()).rejects.toThrow('HAPI unreachable');
+      const kpis = await makeService(search).getKpis(Role.ADMIN, 'admin-id');
+      expect(kpis.source).toBe('live');
+      expect(kpis.cohortSize).toBe(0);
     });
 
     it('returns a zero-filled live report when empty and no seed file exists', async () => {
@@ -254,7 +277,7 @@ describe('AnalyticsService', () => {
         params._summary === 'count' ? countset(0) : searchset([]),
       );
 
-      const kpis = await makeService(search).getKpis();
+      const kpis = await makeService(search).getKpis(Role.ADMIN, 'admin-id');
 
       expect(kpis.source).toBe('live');
       expect(kpis.cohortSize).toBe(0);
@@ -313,6 +336,6 @@ describe('loadSeedKpis (real docs/kpis.json)', () => {
     expect(kpis).not.toBeNull();
     expect(kpis?.source).toBe('seed');
     expect(kpis?.cohortSize).toBe(371);
-    expect(kpis?.alerts.total).toBe(626);
+    expect(kpis?.alerts.total).toBe(625);
   });
 });

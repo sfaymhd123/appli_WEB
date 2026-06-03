@@ -105,6 +105,66 @@ export class AuthService {
     return { success: true };
   }
 
+  /**
+   * Request a password reset. Generates an opaque token, stores its hash,
+   * and "sends" it to the user (logs to console for PoC).
+   */
+  async requestReset(email: string): Promise<{ success: true }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Avoid user enumeration: return success even if user not found.
+      return { success: true };
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const hash = this.hashToken(token);
+    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { resetTokenHash: hash, resetTokenExpiresAt: expiresAt },
+    });
+
+    // In a real app, this would be an email.
+    console.log('\n================ PASSWORD RESET (PoC) ================');
+    console.log(`User: ${email}`);
+    console.log(`Token: ${token}`);
+    console.log(`Link: http://localhost:5173/reset-password?token=${token}`);
+    console.log('======================================================\n');
+
+    return { success: true };
+  }
+
+  /**
+   * Complete a password reset: verify the token, then update the password
+   * and clear the reset fields.
+   */
+  async completeReset(token: string, newPassword: string): Promise<{ success: true }> {
+    const hash = this.hashToken(token);
+    const user = await this.prisma.user.findFirst({
+      where: {
+        resetTokenHash: hash,
+        resetTokenExpiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        resetTokenHash: null,
+        resetTokenExpiresAt: null,
+      },
+    });
+
+    return { success: true };
+  }
+
   private async issueTokens(user: User): Promise<TokenResponse> {
     const role = toDomainRole(user.role);
     const accessTtl = this.config.get('jwtAccessTtl', { infer: true });

@@ -77,7 +77,7 @@ OAuth2 password grant + JWT (RS256), with optional TOTP MFA. Seeded users share
 the PoC password (`SEED_PASSWORD`, default `Passw0rd!`) and have MFA disabled.
 
 ### `POST /auth/login`
-Body: `{ "email": "physician@hphii.ma", "password": "Passw0rd!" }`
+Body: `{ "email": "medecin@hphii.ma", "password": "Passw0rd!" }`
 - MFA disabled → `200 { accessToken, refreshToken, user }`.
 - MFA enabled → `200 { mfaRequired: true, mfaToken }` (then call `/auth/mfa/verify`).
 

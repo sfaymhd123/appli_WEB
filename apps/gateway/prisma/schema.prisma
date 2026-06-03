@@ -32,6 +32,8 @@ model User {
   role         Role
   totpSecret   String? // base32 TOTP secret; null until MFA is enrolled
   isMfaEnabled Boolean  @default(false)
+  resetTokenHash String?
+  resetTokenExpiresAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

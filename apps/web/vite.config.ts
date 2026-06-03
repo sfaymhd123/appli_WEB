@@ -13,6 +13,7 @@ export default defineConfig({
       workbox: {
         // SPA client-side routes resolve to the cached shell when offline.
         navigateFallback: 'index.html',
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
         runtimeCaching: [
           {
             // Offline reads (ARCH.md §8): cache the gateway's GET responses and

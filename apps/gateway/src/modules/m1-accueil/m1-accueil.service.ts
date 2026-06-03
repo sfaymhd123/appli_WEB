@@ -40,6 +40,9 @@ export class M1AccueilService {
     if (dto.phone) {
       patient.telecom = [{ system: 'phone', value: dto.phone, use: 'mobile' }];
     }
+    if (dto.generalPractitioner) {
+      patient.generalPractitioner = [{ reference: dto.generalPractitioner }];
+    }
     this.logger.log('Registering Patient (new HPHII identifier allocated)');
     return this.fhir.create(patient);
   }
@@ -47,6 +50,11 @@ export class M1AccueilService {
   /** Read one Patient by its HAPI logical id. */
   async findById(id: string): Promise<Patient> {
     return this.fhir.read<Patient>('Patient', id);
+  }
+
+  /** Create or Update a Practitioner (internal use for seeding). */
+  async createPractitioner(resource: any): Promise<any> {
+    return this.fhir.update(resource);
   }
 
   /**

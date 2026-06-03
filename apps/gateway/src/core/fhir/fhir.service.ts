@@ -138,6 +138,19 @@ export class FhirService {
     }
   }
 
+  /** Execute a search using a full URL (usually from a Bundle.link.next). */
+  async searchByUrl<T extends Resource = Resource>(url: string): Promise<Bundle<T>> {
+    try {
+      // url might be absolute or relative to the base URL
+      const { data, status } = await this.http.get<Bundle<T>>(url);
+      const hits = data.total ?? data.entry?.length ?? 0;
+      this.logger.log(`GET ${url} -> ${status} (${hits} hits)`);
+      return data;
+    } catch (error) {
+      throw this.fail('GET', url, error);
+    }
+  }
+
   async operationEverything(patientId: string, opts: EverythingOptions = {}): Promise<Bundle> {
     const params: SearchParams = {};
     if (opts.count !== undefined) params._count = opts.count;

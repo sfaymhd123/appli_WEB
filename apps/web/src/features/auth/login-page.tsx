@@ -4,8 +4,10 @@ import { AxiosError } from 'axios';
 import { Mail, Lock, ShieldCheck, ArrowRight, Activity } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../lib/auth/auth-context';
+import { requestPasswordReset } from '../../lib/api/auth-api';
+import { useToast } from '../../components/ui/toast';
 
-type Phase = 'credentials' | 'mfa';
+type Phase = 'credentials' | 'mfa' | 'forgot';
 
 interface RedirectState {
   from?: string;
@@ -21,6 +23,7 @@ function messageFor(err: unknown, fallback: string): string {
 
 export function LoginPage() {
   const { isAuthenticated, signIn, completeMfa } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const target = (location.state as RedirectState | null)?.from ?? '/';
@@ -68,20 +71,33 @@ export function LoginPage() {
     }
   }
 
+  async function onSubmitForgot(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await requestPasswordReset(email.trim());
+      toast('Si un compte existe, un lien de réinitialisation a été généré.', 'success');
+      setPhase('credentials');
+    } catch (err) {
+      setError(messageFor(err, 'Erreur lors de la demande.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* Left side: Branding & Info (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-clinical-900 overflow-hidden items-center justify-center p-12">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-clinical-400 via-transparent to-transparent" />
-          <svg className="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.1" />
-              </pattern>
-            </defs>
-            <rect width="100" height="100" fill="url(#grid)" />
-          </svg>
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center p-12 bg-clinical-900">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/login-bg.jpg" 
+            alt="Medical background" 
+            className="h-full w-full object-cover opacity-65"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-clinical-900/80 via-clinical-900/40 to-clinical-900/20" />
         </div>
 
         <div className="relative z-10 max-w-lg text-center">
@@ -117,44 +133,55 @@ export function LoginPage() {
 
           <div className="bg-white rounded-3xl p-8 shadow-xl shadow-clinical-900/5 ring-1 ring-gray-100">
             {phase === 'credentials' ? (
-              <form onSubmit={onSubmitCredentials} className="space-y-6">
-                <div className="space-y-4">
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    label="Adresse e-mail" 
-                    icon={Mail} 
-                    value={email}
-                    onChange={(val) => setEmail(val)}
-                    autoComplete="username"
-                  />
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    label="Mot de passe" 
-                    icon={Lock} 
-                    value={password}
-                    onChange={(val) => setPassword(val)}
-                    autoComplete="current-password"
-                  />
-                </div>
-
-                {error && (
-                  <div className="rounded-xl bg-red-50 p-3 ring-1 ring-red-100">
-                    <p className="text-xs font-semibold text-red-600 flex items-center gap-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
-                      {error}
-                    </p>
+              <div className="space-y-6">
+                <form onSubmit={onSubmitCredentials} className="space-y-6">
+                  <div className="space-y-4">
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      label="Adresse e-mail" 
+                      icon={Mail} 
+                      value={email}
+                      onChange={(val) => setEmail(val)}
+                      autoComplete="username"
+                    />
+                    <Input
+                      id="password"
+                      type="password"
+                      label="Mot de passe"
+                      icon={Lock}
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete="current-password"
+                    />
+                    <div className="flex justify-end px-1">
+                      <button
+                        type="button"
+                        onClick={() => { setPhase('forgot'); setError(null); }}
+                        className="text-[10px] font-bold text-clinical-600 hover:text-clinical-700 transition-colors uppercase tracking-wider"
+                      >
+                        Mot de passe oublié ?
+                      </button>
+                    </div>
                   </div>
-                )}
 
-                <Button type="submit" fullWidth size="lg" loading={submitting} className="rounded-2xl h-12 text-base font-bold shadow-lg shadow-clinical-700/20">
-                  <span className="flex items-center gap-2">
-                    Accéder au portail <ArrowRight className="h-4 w-4" />
-                  </span>
-                </Button>
-              </form>
-            ) : (
+                  {error && (
+                    <div className="rounded-xl bg-red-50 p-3 ring-1 ring-red-100">
+                      <p className="text-xs font-semibold text-red-600 flex items-center gap-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+                        {error}
+                      </p>
+                    </div>
+                  )}
+
+                  <Button type="submit" fullWidth size="lg" loading={submitting} className="rounded-2xl h-12 text-base font-bold shadow-lg shadow-clinical-700/20">
+                    <span className="flex items-center gap-2">
+                      Accéder au portail <ArrowRight className="h-4 w-4" />
+                    </span>
+                  </Button>
+                </form>
+              </div>
+            ) : phase === 'mfa' ? (
               <form onSubmit={onSubmitMfa} className="space-y-6">
                 <div className="text-center space-y-2">
                   <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-clinical-50 text-clinical-600 mb-4">
@@ -196,6 +223,47 @@ export function LoginPage() {
                     className="w-full py-2 text-xs font-bold text-gray-400 hover:text-clinical-600 transition-colors uppercase tracking-wider"
                   >
                     Utiliser un autre compte
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={onSubmitForgot} className="space-y-6">
+                <div className="text-center space-y-4">
+                  <h4 className="text-xl font-bold text-gray-900">Mot de passe oublié</h4>
+                  <p className="text-sm text-gray-500">
+                    Saisissez votre e-mail pour recevoir un lien de réinitialisation (PoC : simulé dans la console).
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    label="Adresse e-mail"
+                    icon={Mail}
+                    value={email}
+                    onChange={(val) => setEmail(val)}
+                    autoComplete="username"
+                  />
+                </div>
+
+                {error && (
+                  <p className="text-center text-xs font-bold text-red-600">{error}</p>
+                )}
+
+                <div className="space-y-3">
+                  <Button type="submit" fullWidth size="lg" loading={submitting} className="rounded-2xl h-12">
+                    Générer le lien
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPhase('credentials');
+                      setError(null);
+                    }}
+                    className="w-full py-2 text-xs font-bold text-gray-400 hover:text-clinical-600 transition-colors uppercase tracking-wider"
+                  >
+                    Retour à la connexion
                   </button>
                 </div>
               </form>
@@ -256,4 +324,3 @@ function Input({ id, type, label, icon: Icon, value, onChange, autoComplete }: {
     </div>
   );
 }
-

@@ -25,6 +25,9 @@ import { M4MonitoringModule } from './modules/m4-monitoring/m4-monitoring.module
 import { M5ServicesModule } from './modules/m5-services/m5-services.module';
 import { M6DspModule } from './modules/m6-dsp/m6-dsp.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { DemoModule } from './modules/demo/demo.module';
+import { AppointmentModule } from './modules/m7-appointments/appointment.module';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -50,6 +53,9 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     M5ServicesModule,
     M6DspModule,
     AnalyticsModule,
+    DemoModule,
+    AppointmentModule,
+    UsersModule,
   ],
   controllers: [HealthController],
   providers: [

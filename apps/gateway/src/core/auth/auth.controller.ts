@@ -5,6 +5,8 @@ import { Public } from './decorators/public.decorator';
 import { LoginDto } from './dto/login.dto';
 import { MfaVerifyDto } from './dto/mfa-verify.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { RequestResetDto } from './dto/request-reset.dto';
+import { CompleteResetDto } from './dto/complete-reset.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -36,5 +38,19 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   logout(@Body() dto: RefreshDto): Promise<{ success: true }> {
     return this.auth.logout(dto.refreshToken);
+  }
+
+  @Public()
+  @Post('password-reset/request')
+  @HttpCode(HttpStatus.OK)
+  requestReset(@Body() dto: RequestResetDto): Promise<{ success: true }> {
+    return this.auth.requestReset(dto.email);
+  }
+
+  @Public()
+  @Post('password-reset/complete')
+  @HttpCode(HttpStatus.OK)
+  completeReset(@Body() dto: CompleteResetDto): Promise<{ success: true }> {
+    return this.auth.completeReset(dto.token, dto.newPassword);
   }
 }

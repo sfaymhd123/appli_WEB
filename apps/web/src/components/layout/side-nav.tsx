@@ -28,7 +28,7 @@ export function SideNav({ role, open, onNavigate }: SideNavProps) {
       <nav
         aria-label="Navigation principale"
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto border-r border-clinical-800/50 bg-clinical-900 px-4 py-8 transition-transform md:static md:z-auto md:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 w-64 shrink-0 overflow-y-auto border-r border-clinical-800/50 bg-clinical-900 px-4 py-8 transition-transform md:sticky md:top-16 md:z-auto md:h-[calc(100vh-4rem)] md:translate-x-0',
           open ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -57,12 +57,7 @@ export function SideNav({ role, open, onNavigate }: SideNavProps) {
                   "h-5 w-5 shrink-0 transition-transform duration-300 group-hover:scale-110",
                   "opacity-70 group-hover:opacity-100"
                 )} />
-                <div className="flex flex-col">
-                  <span>{item.label}</span>
-                  <span className="text-[9px] font-medium uppercase tracking-tight opacity-40 group-hover:opacity-60">
-                    {item.module}
-                  </span>
-                </div>
+                <span className="flex-1">{item.label}</span>
               </NavLink>
             </li>
           ))}

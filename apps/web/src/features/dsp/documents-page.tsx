@@ -78,7 +78,7 @@ export function DocumentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Documents</h1>
-        <p className="mt-1 text-sm text-gray-600">Module M6 — Comptes rendus et pièces du dossier.</p>
+        <p className="mt-1 text-sm text-gray-600">Comptes rendus et pièces du dossier.</p>
       </div>
 
       <Card>

@@ -31,4 +31,8 @@ export class CreatePatientDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @IsOptional()
+  @IsString()
+  generalPractitioner?: string;
 }

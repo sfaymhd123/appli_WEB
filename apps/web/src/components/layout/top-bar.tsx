@@ -45,10 +45,10 @@ export function TopBar({ onToggleNav }: TopBarProps) {
 
       <div className="flex items-center gap-4">
         <div
-          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
-            online ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+          className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all duration-300 ${
+            online ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700 animate-pulse'
           }`}
-          title={online ? 'Connecté au réseau' : 'Hors ligne — cache local'}
+          title={online ? 'Connecté à la plateforme' : 'Serveur injoignable — mode hors-ligne'}
         >
           {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
           <span className="hidden sm:inline">{online ? 'En ligne' : 'Hors ligne'}</span>

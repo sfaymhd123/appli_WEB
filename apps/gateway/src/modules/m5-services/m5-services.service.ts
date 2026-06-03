@@ -55,12 +55,13 @@ export class M5ServicesService {
   /* ----- Pharmacy ----- */
 
   /** Physician orders a medication → draft MedicationRequest + simulated stock. */
-  async createMedicationRequest(dto: CreateMedicationRequestDto): Promise<MedicationOrderResult> {
+  async createMedicationRequest(dto: CreateMedicationRequestDto, requesterRef?: string): Promise<MedicationOrderResult> {
     const patientRef = await this.requirePatientRef(dto.patientId);
 
     const medicationRequest = await this.fhir.create(
       buildMedicationRequestResource({
         patientRef,
+        requesterRef,
         medication: dto.medication,
         code: dto.code,
         system: dto.system,
@@ -169,7 +170,7 @@ export class M5ServicesService {
    * abnormal flag, and — when abnormal — notifies the ordering physician (SMS +
    * in-app). Returns a wrapper; the AuditInterceptor anchors via body.patientId.
    */
-  async createDiagnosticReport(dto: CreateDiagnosticReportDto): Promise<DiagnosticReportResult> {
+  async createDiagnosticReport(dto: CreateDiagnosticReportDto, performerRef?: string): Promise<DiagnosticReportResult> {
     if (typeof dto.value !== 'number' && !dto.valueText) {
       throw new BadRequestException('A numeric `value` or a `valueText` result is required.');
     }
@@ -203,6 +204,7 @@ export class M5ServicesService {
     const report = await this.fhir.create(
       buildDiagnosticReportResource({
         patientRef,
+        performerRef,
         category: dto.category,
         loinc: dto.loinc,
         display: dto.display,

@@ -11,11 +11,15 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="relative flex min-h-screen flex-col bg-gray-50/50">
-      {/* Ambient background decoration */}
+      {/* Ambient background decoration with custom image */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-clinical-500/5 blur-[120px]" />
-        <div className="absolute -right-[10%] bottom-[10%] h-[30%] w-[30%] rounded-full bg-blue-500/5 blur-[100px]" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#0f766e 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }} />
+        <img 
+          src="/login-bg.jpg" 
+          alt="" 
+          className="h-full w-full object-cover opacity-[0.20]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50/40 via-transparent to-gray-50/40" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#0f766e 0.5px, transparent 0.5px)', backgroundSize: '32px 32px' }} />
       </div>
 
       <OfflineBanner />

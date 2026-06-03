@@ -74,9 +74,9 @@ export function DspPage() {
     }
   }
 
-  function onDownloadPdf() {
+  async function onDownloadPdf() {
     if (!patientId || !record.data) return;
-    downloadDspPdf(patientId, record.data);
+    await downloadDspPdf(patientId, record.data);
   }
 
   if (!patientId) {
@@ -116,7 +116,7 @@ export function DspPage() {
         </Link>
         <h1 className="mt-1 text-2xl font-bold text-gray-900">Dossier de Santé Partagé (DSP)</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Module M6 — Vue filtrée par rôle (RBAC §6) du{' '}
+          Vue filtrée par rôle (RBAC §6) du{' '}
           <span className="font-mono">Patient/{patientId}</span>.
         </p>
       </div>

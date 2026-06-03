@@ -75,7 +75,7 @@ export function AuditTrailPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Journal d’audit</h1>
-        <p className="mt-1 text-sm text-gray-600">Module M6 — Traçabilité des accès au DSP (IHE ATNA).</p>
+        <p className="mt-1 text-sm text-gray-600">Traçabilité des accès au DSP (IHE ATNA).</p>
       </div>
 
       {!isAdmin ? (

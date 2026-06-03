@@ -31,13 +31,12 @@ interface ResponseLike {
  * here (their access is narrowed to meds/lab per ARCH.md §6).
  * Guarded globally by JwtAuthGuard → RolesGuard; mutations/reads are audited.
  */
-@Controller('patients')
+@Controller()
 @Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN, Role.PHARMACIST, Role.LAB_TECHNICIAN)
 export class M1AccueilController {
   constructor(private readonly m1: M1AccueilService) {}
 
-  /** Register a new patient; returns 201 + Location of the created resource. */
-  @Post()
+  @Post('patients')
   @Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
@@ -52,21 +51,18 @@ export class M1AccueilController {
     return patient;
   }
 
-  /** Search patients by identifier, name, zone, or risk group. */
-  @Get()
+  @Get('patients')
   search(@Query() query: SearchPatientsDto): Promise<PatientSearchResult> {
     return this.m1.search(query);
   }
 
-  /** Read one patient record. */
-  @Get(':id')
+  @Get('patients/:id')
   @Audit('R')
   findOne(@Param('id') id: string): Promise<Patient> {
     return this.m1.findById(id);
   }
 
-  /** Attach a coverage and run a simulated eligibility check. */
-  @Post(':id/coverage')
+  @Post('patients/:id/coverage')
   @Roles(Role.PHYSICIAN, Role.NURSE, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
@@ -75,5 +71,12 @@ export class M1AccueilController {
     @Body() dto: CreateCoverageDto,
   ): Promise<CoverageResult> {
     return this.m1.addCoverage(id, dto);
+  }
+
+  @Post('practitioners')
+  @Roles(Role.ADMIN)
+  @Audit('C')
+  createPractitioner(@Body() body: any) {
+    return this.m1.createPractitioner(body);
   }
 }

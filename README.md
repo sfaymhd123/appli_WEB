@@ -83,7 +83,7 @@ All seeded users share the PoC password **`Passw0rd!`** (`SEED_PASSWORD` in `.en
 
 | Role | Email |
 |---|---|
-| Physician | `physician@hphii.ma` |
+| Physician | `medecin@hphii.ma` |
 | Nurse | `nurse@hphii.ma` |
 | Admin | `admin@hphii.ma` |
 | Pharmacist | `pharmacist@hphii.ma` |

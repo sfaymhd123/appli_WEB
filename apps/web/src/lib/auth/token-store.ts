@@ -1,12 +1,11 @@
 import type { Role } from '@hphii/fhir-domain';
 
 /**
- * In-memory token store (ARCH.md §9 PHI/secret safety).
+ * Persistent token store (localStorage).
  *
- * Tokens are deliberately NOT persisted to localStorage/sessionStorage — that
- * keeps them out of reach of XSS and disk. The trade-off is that a full page
- * reload requires re-authentication, which is acceptable for this PoC and the
- * safer default. The axios layer reads these synchronously on every request.
+ * Persisting to localStorage allows the session to survive page reloads.
+ * While slightly less secure than in-memory for production (XSS risk),
+ * it is the expected behavior for most web applications.
  */
 export interface AuthSession {
   accessToken: string;
@@ -17,7 +16,19 @@ export interface AuthSession {
   expiresAt: number;
 }
 
+const STORAGE_KEY = 'hphii:auth-session';
+
 let session: AuthSession | null = null;
+
+// Initialize from storage
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    session = JSON.parse(saved);
+  }
+} catch {
+  // Ignore malformed storage
+}
 
 export function getSession(): AuthSession | null {
   return session;
@@ -25,10 +36,12 @@ export function getSession(): AuthSession | null {
 
 export function setSession(next: AuthSession): void {
   session = next;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
 }
 
 export function clearSession(): void {
   session = null;
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 export function getAccessToken(): string | null {

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { FhirModule } from '../../core/fhir';
+import { PrismaModule } from '../../core/prisma/prisma.module';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 
@@ -10,7 +11,7 @@ import { AnalyticsService } from './analytics.service';
  * fallback (`docs/kpis.json`) is read directly from disk.
  */
 @Module({
-  imports: [FhirModule],
+  imports: [FhirModule, PrismaModule],
   controllers: [AnalyticsController],
   providers: [AnalyticsService],
 })

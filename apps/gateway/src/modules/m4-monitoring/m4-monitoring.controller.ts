@@ -22,7 +22,7 @@ export class M4ObservationsController {
 
   /** Submit a single reading → coded Observation (+ alert if a threshold breaks). */
   @Post()
-  @Roles(Role.NURSE, Role.PHYSICIAN)
+  @Roles(Role.NURSE, Role.PHYSICIAN, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
   createObservation(@Body() dto: CreateObservationDto): Promise<ObservationResult> {
