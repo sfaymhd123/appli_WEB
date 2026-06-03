@@ -82,9 +82,9 @@ export function PathwayEntryPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Parcours de soins (M3)</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Parcours de soins</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Modules M3a / M3b — orientation chronique ou épisodique d’un patient, puis gestion du
+          Orientation chronique ou épisodique d’un patient, puis gestion du
           plan de soins ou de l’épisode aigu.
         </p>
       </div>
@@ -98,11 +98,11 @@ export function PathwayEntryPage() {
                 <Badge tone="clinical">Chronique</Badge> Parcours longitudinal
               </span>
             }
-            description="M3a — CarePlan : objectifs, activités, équipe de soins et conditions suivies."
+            description="CarePlan : objectifs, activités, équipe de soins et conditions suivies."
           />
           <CardBody>
             <p className="text-sm text-gray-600">
-              Pour les patients à suivi long (diabète, HTA…). Le monitoring M4 peut signaler le plan
+              Pour les patients à suivi long (diabète, HTA…). Le monitoring peut signaler le plan
               pour révision (ex. HbA1c &gt; 7).
             </p>
           </CardBody>
@@ -114,7 +114,7 @@ export function PathwayEntryPage() {
                 <Badge tone="warning">Épisodique</Badge> Épisode aigu
               </span>
             }
-            description="M3b — Encounter + Condition : prise en charge ponctuelle, ouverte puis clôturée."
+            description="Encounter + Condition : prise en charge ponctuelle, ouverte puis clôturée."
           />
           <CardBody>
             <p className="text-sm text-gray-600">

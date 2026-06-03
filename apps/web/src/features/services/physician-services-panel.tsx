@@ -237,7 +237,7 @@ export function PhysicianServicesPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Services médico-techniques (M5)</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Services médico-techniques</h1>
         <p className="mt-1 text-sm text-gray-600">
           Prescrivez des médicaments (validés par le pharmacien) et demandez des examens de
           laboratoire ou d’imagerie. Les résultats anormaux vous sont notifiés.

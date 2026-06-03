@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { Download, Plus } from 'lucide-react';
 import type { Patient } from 'fhir/r4';
 import type { RiskGroup, ZoneType } from '@hphii/fhir-domain';
 import {
@@ -46,6 +47,36 @@ export function PatientsListPage() {
       zone: (zone || undefined) as ZoneType | undefined,
       riskGroup: (riskGroup || undefined) as RiskGroup | undefined,
     });
+  }
+
+  function onExport() {
+    const patients = query.data?.patients ?? [];
+    if (patients.length === 0) return;
+
+    const headers = ['ID', 'Nom', 'Sexe', 'Date Naissance', 'Zone', 'Régime', 'Groupe Risque'];
+    const rows = patients.map((p) => [
+      patientMrn(p) ?? p.id,
+      patientDisplayName(p),
+      p.gender === 'male' || p.gender === 'female' ? GENDER_LABELS[p.gender] : (p.gender ?? '—'),
+      p.birthDate ?? '—',
+      patientZone(p) ?? '—',
+      patientCoverage(p) ?? '—',
+      patientRiskGroup(p) ?? '—',
+    ]);
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';')),
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Extraction_Patients_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const columns: Column<Patient>[] = [
@@ -107,11 +138,25 @@ export function PatientsListPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
-          <p className="mt-1 text-sm text-gray-600">Module M1 — Accueil & Identité.</p>
+          <p className="mt-1 text-sm text-gray-600">Accueil & Identité.</p>
         </div>
-        <Link to="/patients/new">
-          <Button>Nouveau patient</Button>
-        </Link>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            onClick={onExport}
+            disabled={!query.data?.patients?.length}
+            title="Exporter la liste actuelle en CSV"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Extraction
+          </Button>
+          <Link to="/patients/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau patient
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card>

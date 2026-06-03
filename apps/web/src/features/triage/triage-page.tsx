@@ -98,7 +98,7 @@ export function TriagePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Triage</h1>
-        <p className="mt-1 text-sm text-gray-600">Module M2 — Priorisation algorithmique (P1–P5).</p>
+        <p className="mt-1 text-sm text-gray-600">Priorisation algorithmique (P1–P5).</p>
       </div>
 
       <Card>

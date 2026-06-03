@@ -135,7 +135,7 @@ export function PatientRegistrationPage() {
       <Card>
         <CardHeader
           title="Identité du patient"
-          description="Module M1 — Accueil & Identité (ARCH.md §2)."
+          description="Accueil & Identité (ARCH.md §2)."
         />
         <CardBody>
           <form className="space-y-5" onSubmit={onSubmit}>

@@ -1,9 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Req } from '@nestjs/common';
 import { Role } from '@hphii/fhir-domain';
 
 import { Roles } from '../../core/rbac/decorators/roles.decorator';
 import { AnalyticsService } from './analytics.service';
 import type { KpiReport } from './analytics.types';
+import type { AuthenticatedRequest } from '../../core/auth/auth.types';
 
 /**
  * Analytics — balanced-scorecard KPIs (ARCH.md report metrics). Guarded
@@ -18,8 +19,8 @@ export class AnalyticsController {
 
   /** Balanced-scorecard KPIs, computed live from FHIR (seed fallback). */
   @Get()
-  @Roles(Role.ADMIN, Role.PHYSICIAN)
-  getKpis(): Promise<KpiReport> {
-    return this.analytics.getKpis();
+  @Roles(Role.ADMIN, Role.PHYSICIAN, Role.NURSE, Role.PHARMACIST, Role.LAB_TECHNICIAN)
+  getKpis(@Req() req: AuthenticatedRequest): Promise<KpiReport> {
+    return this.analytics.getKpis(req.user.role, req.user.sub);
   }
 }

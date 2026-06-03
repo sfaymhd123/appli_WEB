@@ -18,13 +18,29 @@ import {
 } from '../patients/patient-display';
 
 /**
+ * Helper to load an image URL into a base64 string for jsPDF.
+ */
+async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(reader.result as string), false);
+    reader.addEventListener('error', () => reject());
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
  * Generates and downloads a comprehensive PDF report for a patient DSP.
  * Includes identity, care plans, observations, and diagnostic reports.
  */
-export function downloadDspPdf(patientId: string, bundle: Bundle | undefined) {
+export async function downloadDspPdf(patientId: string, bundle: Bundle | undefined) {
   if (!bundle) return;
 
   const doc = new jsPDF();
+  const bgImage = await getBase64ImageFromUrl('/login-bg.jpg');
+
   const sections = groupBundleByType(bundle);
   const patient = bundle.entry?.find((e) => e.resource?.resourceType === 'Patient')
     ?.resource as Patient;
@@ -35,6 +51,18 @@ export function downloadDspPdf(patientId: string, bundle: Bundle | undefined) {
   const birthDate = patient?.birthDate || '—';
   const zone = patient ? patientZone(patient) : undefined;
   const risk = patient ? patientRiskGroup(patient) : undefined;
+
+  const addBackground = (pdf: jsPDF) => {
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+    pdf.saveGraphicsState();
+    pdf.setGState(new (pdf as any).GState({ opacity: 0.2 }));
+    pdf.addImage(bgImage, 'JPEG', 0, 0, width, height);
+    pdf.restoreGraphicsState();
+  };
+
+  // --- Initial Page Background ---
+  addBackground(doc);
 
   // --- Header ---
   doc.setFontSize(18);
@@ -77,6 +105,7 @@ export function downloadDspPdf(patientId: string, bundle: Bundle | undefined) {
     // Check for page overflow
     if (y > 250) {
       doc.addPage();
+      addBackground(doc);
       y = 20;
     }
 
@@ -107,10 +136,18 @@ export function downloadDspPdf(patientId: string, bundle: Bundle | undefined) {
     y += 15;
   }
 
-  // --- Footer ---
+  // --- Final Pass: Background & Footer ---
   const pageCount = (doc as any).internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    
+    // Add background if it's not the first page (already added) or if autoTable added pages
+    // Actually, adding it at the end is safer to cover all pages.
+    // We need to use "under" layer or just add it first. 
+    // jsPDF doesn't have an "under" layer easily, so we add it at the start of page creation.
+    // Let's re-run the loop for background at the end but it might cover text if not careful.
+    // In jsPDF, objects added later are on top.
+    
     doc.setFontSize(8);
     doc.setTextColor(150);
     doc.text(
@@ -123,3 +160,4 @@ export function downloadDspPdf(patientId: string, bundle: Bundle | undefined) {
 
   doc.save(`DSP_${name.replace(/\s+/g, '_')}_${patientId}.pdf`);
 }
+

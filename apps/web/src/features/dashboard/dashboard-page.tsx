@@ -7,6 +7,11 @@ import {
   ShieldCheck,
   CheckCircle2,
   Lock,
+  Stethoscope,
+  ClipboardList,
+  FlaskConical,
+  Pill,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   ALL_ROLES,
@@ -92,45 +97,115 @@ function ServerStatusCard() {
 
 export function DashboardPage() {
   const { user } = useAuth();
+
   if (!user || !user.role) return null;
 
   const kpis = useKpis();
-  const showStats = user.role === Role.ADMIN || user.role === Role.PHYSICIAN;
-
+  
   const resources = allowedResourcesForRole(user.role);
   const allowedActions = Object.values(DspAction).filter((action) =>
     canPerform(user.role, action),
   );
 
+  const renderKpiCards = () => {
+    if (!kpis.data) return null;
+    const d = kpis.data;
+
+    switch (user.role) {
+      case Role.PHYSICIAN:
+        return (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <StatMiniCard label="Mes Patients" value={d.cohortSize} icon={Users} to="/patients" />
+            <StatMiniCard
+              label="Alertes actives"
+              value={(d.alerts?.pending ?? 0) + (d.alerts?.escalated ?? 0)}
+              tone={(d.alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
+              icon={Bell}
+              to="/alerts"
+            />
+            <StatMiniCard label="Résultats anormaux" value={d.results?.abnormal ?? 0} tone={d.results?.abnormal > 0 ? 'warning' : 'neutral'} icon={FlaskConical} to="/services" />
+            <StatMiniCard label="Suivi actif" value={d.pathwayMix?.chronic ?? 0} icon={Activity} to="/care-plans" />
+          </div>
+        );
+      case Role.NURSE:
+        return (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <StatMiniCard label="Patients suivis" value={d.cohortSize} icon={Users} to="/patients" />
+            <StatMiniCard
+              label="Alertes"
+              value={(d.alerts?.pending ?? 0) + (d.alerts?.escalated ?? 0)}
+              tone={(d.alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
+              icon={Bell}
+              to="/alerts"
+            />
+            <StatMiniCard label="File de triage" value={d.triage?.total ?? 0} icon={ClipboardList} to="/triage" />
+            <StatMiniCard label="Observations" value={d.monitoring?.observations ?? 0} icon={Database} to="/observations" />
+          </div>
+        );
+      case Role.ADMIN:
+        return (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <StatMiniCard label="Effectif Total" value={d.staffCount ?? 0} icon={ShieldCheck} to="/users" />
+            <StatMiniCard label="Cohorte totale" value={d.cohortSize} icon={Users} to="/patients" />
+            <StatMiniCard label="Volume d'alertes" value={d.alerts?.total ?? 0} icon={Bell} to="/alerts" />
+            <StatMiniCard label="Flux de données" value={d.monitoring?.observations ?? 0} icon={Database} to="/observations" />
+          </div>
+        );
+      case Role.LAB_TECHNICIAN:
+        return (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <StatMiniCard label="Résultats à traiter" value={d.results?.total ?? 0} icon={FlaskConical} to="/services" />
+            <StatMiniCard label="Alertes bio" value={d.alerts?.total ?? 0} tone={d.alerts?.total > 0 ? 'warning' : 'neutral'} icon={Bell} to="/alerts" />
+            <StatMiniCard label="Patients concernés" value={d.cohortSize} icon={Users} to="/patients" />
+          </div>
+        );
+      case Role.PHARMACIST:
+        return (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <StatMiniCard label="Prescriptions" value={d.medications?.total ?? 0} icon={Pill} to="/services" />
+            <StatMiniCard label="Alertes médicamenteuses" value={d.alerts?.total ?? 0} tone={d.alerts?.total > 0 ? 'warning' : 'neutral'} icon={Bell} to="/alerts" />
+            <StatMiniCard label="Patients" value={d.cohortSize} icon={Users} to="/patients" />
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const roleIcons: Record<string, any> = {
+    [Role.PHYSICIAN]: Stethoscope,
+    [Role.NURSE]: ClipboardList,
+    [Role.ADMIN]: ShieldCheck,
+    [Role.LAB_TECHNICIAN]: FlaskConical,
+    [Role.PHARMACIST]: Pill,
+  };
+  const RoleIcon = roleIcons[user.role] || LayoutDashboard;
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
-          Bonjour, {RoleLabels[user.role] ?? user.role}
-        </h1>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <span className="font-medium">{user.email || 'Utilisateur connecté'}</span>
-          <span className="text-gray-300">/</span>
-          <Badge tone="clinical" className="rounded-md px-1.5 py-0.5 uppercase tracking-wider text-[10px]">
-            {user.role}
-          </Badge>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-clinical-50 text-clinical-600">
+              <RoleIcon className="h-7 w-7" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+                Bonjour, {RoleLabels[user.role] ?? user.role}
+              </h1>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="font-medium">{user.email}</span>
+                <span className="text-gray-300">/</span>
+                <Badge tone="clinical" className="rounded-md px-1.5 py-0.5 uppercase tracking-wider text-[10px]">
+                  DSP {user.role}
+                </Badge>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {showStats && kpis.data && (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <StatMiniCard label="Cohorte" value={kpis.data.cohortSize} icon={Users} to="/patients" />
-          <StatMiniCard label="Parcours actifs" value={kpis.data.pathwayMix?.total ?? 0} icon={Activity} to="/care-plans" />
-          <StatMiniCard
-            label="Alertes actives"
-            value={(kpis.data.alerts?.pending ?? 0) + (kpis.data.alerts?.escalated ?? 0)}
-            tone={(kpis.data.alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
-            icon={Bell}
-            to="/alerts"
-          />
-          <StatMiniCard label="Observations" value={kpis.data.monitoring?.observations ?? 0} icon={Database} to="/observations" />
-        </div>
-      )}
+      {renderKpiCards()}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card hover>
@@ -278,3 +353,4 @@ function StatMiniCard({
 
   return content;
 }
+

@@ -52,8 +52,8 @@ export function Modal({
       />
       <div
         className={cn(
-          'relative z-10 w-full max-w-lg rounded-card bg-white shadow-xl',
-          className,
+          'relative z-10 w-full rounded-card bg-white shadow-xl',
+          className || 'max-w-lg',
         )}
       >
         {title && (

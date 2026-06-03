@@ -22,3 +22,12 @@ export async function verifyMfa(mfaToken: string, code: string): Promise<TokenRe
 export async function logout(refreshToken: string): Promise<void> {
   await authClient.post('/auth/logout', { refreshToken });
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await authClient.post('/auth/password-reset/request', { email });
+}
+
+export async function completePasswordReset(token: string, newPassword: string): Promise<void> {
+  await authClient.post('/auth/password-reset/complete', { token, newPassword });
+}
+

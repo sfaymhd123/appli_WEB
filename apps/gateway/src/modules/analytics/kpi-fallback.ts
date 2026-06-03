@@ -12,6 +12,7 @@ import {
   buildTriageStats,
   emptyRiskCounts,
   emptyRoleCounts,
+  emptyStaffDistribution,
   emptyTriageCounts,
   emptyZoneCounts,
 } from './kpi-math';
@@ -88,11 +89,14 @@ export function mapSeedKpis(raw: SeedKpis): KpiReport {
     source: 'seed',
     generatedAt: raw.generated_at ?? new Date().toISOString(),
     cohortSize: raw.patients_total ?? 0,
+    staffCount: 0,
+    staffDistribution: emptyStaffDistribution(),
     demographics: buildDemographics(emptyZoneCounts(), emptyRiskCounts()),
     pathwayMix: buildPathwayMix(raw.pathway_mix?.chronic ?? 0, raw.pathway_mix?.episodic ?? 0),
     triage: buildTriageStats(byPriority),
     monitoring: { observations: raw.monitoring_observations_total ?? 0 },
     results: buildResultStats(raw.service_results?.total ?? 0, raw.service_results?.abnormal ?? 0),
+    medications: { total: 0 },
     alerts: buildAlertStats(acknowledged, pending, escalated, raw.alerts?.total),
     dspAccessByRole,
   };

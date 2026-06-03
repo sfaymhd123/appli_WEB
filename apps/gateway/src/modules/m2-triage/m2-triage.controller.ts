@@ -20,7 +20,7 @@ export class M2TriageController {
 
   /** Run triage → Encounter + Task (+ P1 critical alert). 201 Created. */
   @Post()
-  @Roles(Role.NURSE, Role.PHYSICIAN)
+  @Roles(Role.NURSE, Role.PHYSICIAN, Role.ADMIN)
   @Audit('C')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateTriageDto): Promise<TriageResponse> {

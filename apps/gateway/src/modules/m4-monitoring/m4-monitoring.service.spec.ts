@@ -81,11 +81,11 @@ describe('M4MonitoringService', () => {
   });
 
   describe('createObservation — threshold engine (§7)', () => {
-    it('Systolic BP 170 → DetectedIssue(high, Pending) + SMS + 15-min job', async () => {
+    it('Systolic BP 185 → DetectedIssue(high, Pending) + SMS + 15-min job', async () => {
       const result = await service.createObservation({
         patientId: 'p1',
         metric: 'systolic-bp',
-        value: 170,
+        value: 185,
       });
 
       expect(result.breached).toBe(true);
@@ -112,7 +112,7 @@ describe('M4MonitoringService', () => {
       expect(queue.add).toHaveBeenCalledWith(
         ESCALATION_JOB,
         { detectedIssueId: 'di-1' },
-        expect.objectContaining({ jobId: 'di-1', delay: 15 * 60_000 }),
+        expect.objectContaining({ jobId: 'alert-di-1', delay: 15 * 60_000 }),
       );
     });
 
@@ -197,7 +197,7 @@ describe('M4MonitoringService', () => {
       expect(extString(updated.extension, HphiiUrls.ACKNOWLEDGEMENT_STATUS)).toBe(
         AcknowledgementStatus.ACKNOWLEDGED,
       );
-      expect(queue.getJob).toHaveBeenCalledWith('di-1');
+      expect(queue.getJob).toHaveBeenCalledWith('alert-di-1');
       expect(remove).toHaveBeenCalled();
       expect(events.emit).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'alert.acknowledged', detectedIssueId: 'di-1' }),
@@ -232,7 +232,7 @@ describe('M4MonitoringService', () => {
       const updated = await service.resolveAlert('di-1', {});
 
       expect(updated.status).toBe('final');
-      expect(queue.getJob).toHaveBeenCalledWith('di-1');
+      expect(queue.getJob).toHaveBeenCalledWith('alert-di-1');
       expect(events.emit).toHaveBeenCalledWith(
         expect.objectContaining({ kind: 'alert.resolved', detectedIssueId: 'di-1' }),
       );

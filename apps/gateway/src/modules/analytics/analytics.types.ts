@@ -37,6 +37,11 @@ export interface ResultStats {
   abnormalPct: number;
 }
 
+/** Medication requests volume (M5 MedicationRequest). */
+export interface MedicationStats {
+  total: number;
+}
+
 /** Alert lifecycle counts (M4 DetectedIssue acknowledgement-status, §8). */
 export interface AlertStats {
   total: number;
@@ -59,6 +64,9 @@ export interface PatientDemographics {
   byRiskGroup: Record<string, number>;
 }
 
+/** Distribution of staff by role. */
+export type StaffDistribution = Record<Role, number>;
+
 /**
  * Balanced-scorecard KPI report (ARCH.md report metrics). Computed live from
  * FHIR where possible, with the seeder's `docs/kpis.json` as a fallback.
@@ -68,11 +76,16 @@ export interface KpiReport {
   generatedAt: string;
   /** Cohort size — total Patient resources. */
   cohortSize: number;
+  /** Total staff members in the gateway database. */
+  staffCount: number;
+  /** Count of staff members per role. */
+  staffDistribution: StaffDistribution;
   demographics: PatientDemographics;
   pathwayMix: PathwayMix;
   triage: TriageStats;
   monitoring: MonitoringStats;
   results: ResultStats;
+  medications: MedicationStats;
   alerts: AlertStats;
   dspAccessByRole: DspAccessByRole;
 }

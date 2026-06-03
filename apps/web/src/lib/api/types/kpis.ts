@@ -47,16 +47,22 @@ export interface PatientDemographics {
   byRiskGroup: Record<string, number>;
 }
 
+/** Distribution of staff by role. */
+export type StaffDistribution = Record<Role, number>;
+
 /** Balanced-scorecard KPI report returned by GET /kpis. */
 export interface KpiReport {
   source: KpiSource;
   generatedAt: string;
   cohortSize: number;
+  staffCount: number;
+  staffDistribution: StaffDistribution;
   demographics: PatientDemographics;
   pathwayMix: PathwayMix;
   triage: TriageStats;
   monitoring: MonitoringStats;
   results: ResultStats;
+  medications: { total: number };
   alerts: AlertStats;
   dspAccessByRole: DspAccessByRole;
 }

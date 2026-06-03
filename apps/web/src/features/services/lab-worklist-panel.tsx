@@ -199,7 +199,7 @@ export function LabWorklistPanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Laboratoire & imagerie (M5)</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Laboratoire & imagerie</h1>
         <p className="mt-1 text-sm text-gray-600">
           File de travail laborantin : saisissez les résultats des examens demandés. Un résultat
           anormal alerte automatiquement le médecin prescripteur.

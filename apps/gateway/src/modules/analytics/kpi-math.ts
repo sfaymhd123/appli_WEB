@@ -27,6 +27,15 @@ export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
+/** Hash a string into a stable positive integer. */
+export function hashString(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
 /** Percentage of `part` within `whole`, rounded to 1 dp; 0 when `whole` is 0. */
 export function pct(part: number, whole: number): number {
   return whole > 0 ? round1((part / whole) * 100) : 0;
@@ -40,6 +49,17 @@ export function emptyTriageCounts(): Record<TriagePriority, number> {
       return acc;
     },
     {} as Record<TriagePriority, number>,
+  );
+}
+
+/** A per-role counter for staff distribution initialised to zero. */
+export function emptyStaffDistribution(): Record<Role, number> {
+  return ALL_ROLES.reduce(
+    (acc, role) => {
+      acc[role] = 0;
+      return acc;
+    },
+    {} as Record<Role, number>,
   );
 }
 

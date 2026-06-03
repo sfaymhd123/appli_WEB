@@ -33,8 +33,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
   {
     to: '/',
     label: 'Tableau de bord',
-    module: 'Accueil',
-    description: 'Vue d’ensemble du dossier de santé partagé.',
+    module: 'KPI',
+    description: 'Tableau de bord équilibré : cohorte, parcours, triage et alertes.',
     icon: 'LayoutDashboard',
   },
   {
@@ -77,11 +77,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
     resource: 'DetectedIssue',
   },
   {
-    to: '/sms-intake',
-    label: 'Saisie SMS',
+    to: '/appointments',
+    label: 'Rendez-vous',
     module: 'M4',
-    description: 'Relevé patient bas débit (SMS) alimentant le moteur de seuils.',
-    icon: 'MessageSquare',
+    description: 'Planification et notifications patients (SMS).',
+    icon: 'Calendar',
     roles: [Role.NURSE, Role.PHYSICIAN],
   },
   {
@@ -110,21 +110,20 @@ export const NAV_ITEMS: readonly NavItem[] = [
     roles: [Role.PHYSICIAN, Role.PHARMACIST, Role.LAB_TECHNICIAN],
   },
   {
-    to: '/analytics',
-    label: 'Analytique (KPI)',
-    module: 'KPI',
-    description:
-      'Tableau de bord équilibré : cohorte, parcours, triage, alertes et accès au DSP.',
-    icon: 'BarChart3',
-    roles: [Role.ADMIN, Role.PHYSICIAN],
-  },
-  {
     to: '/audit',
     label: 'Journal d’audit',
     module: 'M6',
     description: 'Traçabilité des accès au DSP (IHE ATNA).',
     icon: 'ShieldCheck',
     resource: 'AuditEvent',
+  },
+  {
+    to: '/users',
+    label: 'Utilisateurs',
+    module: 'Admin',
+    description: 'Gestion du personnel et des accès.',
+    icon: 'UserPlus',
+    roles: [Role.ADMIN],
   },
 ];
 

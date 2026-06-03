@@ -1,6 +1,7 @@
 export * from './resource-factory';
 
 export * from './patient';
+export * from './appointment';
 export * from './coverage';
 export * from './encounter';
 export * from './task';

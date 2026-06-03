@@ -97,7 +97,7 @@ export function SmsIntakePage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Interface SMS patient</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Module M4 — simulation d’un relevé transmis par SMS (canal bas débit, 62% des échanges).
+          Simulation d’un relevé transmis par SMS (canal bas débit, 62% des échanges).
           La mesure alimente directement le moteur de seuils.
         </p>
       </div>

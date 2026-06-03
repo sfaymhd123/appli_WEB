@@ -3,14 +3,16 @@ import {
   RoleLabels,
   TRIAGE_PRIORITIES,
   TriagePriorityLabels,
-  type Role,
+  Role,
   type TriagePriority,
 } from '@hphii/fhir-domain';
 import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Spinner } from '../../components/ui';
 import { errorMessage } from '../../lib/api/error';
 import { useKpis } from '../../lib/api/hooks/use-kpis';
+import { useAuth } from '../../lib/auth/auth-context';
 import type { KpiReport } from '../../lib/api/types/kpis';
 import { BarChart, SegmentedBar, StatCard, type BarDatum, type Segment } from './kpi-charts';
+import { DemoCard } from './demo-card';
 
 const PRIORITY_COLOR: Record<TriagePriority, string> = {
   P1: 'bg-priority-p1',
@@ -28,29 +30,27 @@ const ROLE_COLOR: Record<Role, string> = {
   'Lab-Technician': 'bg-amber-500',
 };
 
-const pctText = (n: number) => `${n.toLocaleString('fr-FR')} %`;
-const intText = (n: number) => n.toLocaleString('fr-FR');
+const pctText = (n?: number) => `${(n ?? 0).toLocaleString('fr-FR')} %`;
+const intText = (n?: number) => (n ?? 0).toLocaleString('fr-FR');
 
 function formatGeneratedAt(iso: string): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleString('fr-FR');
 }
 
-/**
- * M-Analytics — Balanced-scorecard KPI dashboard (admin/physician). Reads the
- * gateway's GET /kpis, which aggregates live FHIR data (and falls back to the
- * seeder's docs/kpis.json). Charts are deliberately lightweight CSS (§11).
- */
 export function AnalyticsPage() {
   const kpis = useKpis();
+  const { user } = useAuth();
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord analytique (KPI)</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Indicateurs du tableau de bord équilibré, calculés à partir des données FHIR en direct.
+            {user?.role === Role.ADMIN 
+              ? "Indicateurs système globaux (Cohorte complète)." 
+              : `Données personnalisées pour le rôle ${user?.role ? RoleLabels[user.role] : 'chargement...'}.`}
           </p>
         </div>
         <Button
@@ -70,14 +70,18 @@ export function AnalyticsPage() {
       ) : kpis.isError ? (
         <EmptyState title="Chargement impossible" description={errorMessage(kpis.error)} />
       ) : kpis.data ? (
-        <KpiContent report={kpis.data} />
+        <KpiContent report={kpis.data} role={user?.role} />
       ) : null}
     </div>
   );
 }
 
-function KpiContent({ report }: { report: KpiReport }) {
-  const { pathwayMix, triage, monitoring, results, alerts, dspAccessByRole, demographics } = report;
+function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
+  const isAdmin = role === Role.ADMIN;
+  const isClinical = role === Role.PHYSICIAN || role === Role.NURSE;
+  const isLab = role === Role.LAB_TECHNICIAN;
+
+  const { pathwayMix, triage, monitoring, results, alerts, dspAccessByRole, demographics, staffDistribution } = report;
 
   const triageBars: BarDatum[] = TRIAGE_PRIORITIES.map((priority) => ({
     label: TriagePriorityLabels[priority],
@@ -88,6 +92,12 @@ function KpiContent({ report }: { report: KpiReport }) {
   const roleBars: BarDatum[] = ALL_ROLES.map((role) => ({
     label: RoleLabels[role],
     value: dspAccessByRole?.[role] ?? 0,
+    colorClass: ROLE_COLOR[role],
+  }));
+
+  const staffBars: BarDatum[] = ALL_ROLES.map((role) => ({
+    label: RoleLabels[role],
+    value: staffDistribution?.[role] ?? 0,
     colorClass: ROLE_COLOR[role],
   }));
 
@@ -131,86 +141,115 @@ function KpiContent({ report }: { report: KpiReport }) {
         <Badge tone={report.source === 'live' ? 'success' : 'warning'}>
           {report.source === 'live' ? 'Données en direct (FHIR)' : 'Données de référence (seed)'}
         </Badge>
+        {isAdmin && <Badge tone="neutral">Vue Administrateur</Badge>}
+        {!isAdmin && <Badge tone="clinical">Vue Personnalisée</Badge>}
         <span className="text-xs text-gray-500">Généré le {formatGeneratedAt(report.generatedAt)}</span>
       </div>
 
+      {isClinical && (
+        <div className="max-w-xl">
+          <DemoCard />
+        </div>
+      )}
+
       {/* Scorecard headline metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Cohorte" value={intText(report.cohortSize ?? 0)} hint="Patients enregistrés" />
-        <StatCard
-          label="Parcours"
-          value={intText(pathwayMix?.total ?? 0)}
-          hint={`${pctText(pathwayMix?.chronicPct ?? 0)} chroniques · ${pctText(
-            pathwayMix?.episodicPct ?? 0,
-          )} épisodiques`}
-        />
+        {isAdmin && (
+          <StatCard label="Effectif Total" value={intText(report.staffCount)} hint="Membres du personnel" />
+        )}
+
+        {(isAdmin || isClinical) && (
+          <StatCard label={isAdmin ? "Cohorte totale" : "Mes Patients"} value={intText(report.cohortSize)} hint="Patients suivis" />
+        )}
+        
+        {(isAdmin || isLab) && (
+          <StatCard label="Analyses totales" value={intText(results?.total)} hint="Examens traités" />
+        )}
+
+        {(isAdmin || isClinical) && (
+          <StatCard
+            label="Parcours actifs"
+            value={intText(pathwayMix?.total)}
+            hint={`${pctText(pathwayMix?.chronicPct)} chroniques`}
+          />
+        )}
+
         <StatCard
           label="Observations"
-          value={intText(monitoring?.observations ?? 0)}
-          hint="Mesures de monitoring (M4)"
+          value={intText(monitoring?.observations)}
+          hint="Mesures vitales"
         />
+
+        {(isAdmin || isClinical) && (
+          <StatCard
+            label="Triage critique"
+            value={pctText(triage?.criticalPct)}
+            hint={`${intText(triage?.byPriority?.P1)} cas P1`}
+            tone={(triage?.criticalPct ?? 0) >= 10 ? 'danger' : 'warning'}
+          />
+        )}
+
         <StatCard
-          label="Triage critique"
-          value={pctText(triage?.criticalPct ?? 0)}
-          hint={`${intText(triage?.byPriority?.P1 ?? 0)} cas P1 sur ${intText(triage?.total ?? 0)}`}
-          tone={(triage?.criticalPct ?? 0) >= 10 ? 'danger' : 'warning'}
-        />
-        <StatCard
-          label="Alertes non acquittées"
-          value={pctText(alerts?.unacknowledgedPct ?? 0)}
-          hint={`${pctText(alerts?.escalatedPct ?? 0)} escaladées · ${intText(
-            alerts?.total ?? 0,
-          )} au total`}
+          label="Alertes actives"
+          value={pctText(alerts?.unacknowledgedPct)}
+          hint={`${intText(alerts?.pending)} en attente`}
           tone={(alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
         />
-        <StatCard
-          label="Résultats anormaux"
-          value={pctText(results?.abnormalPct ?? 0)}
-          hint={`${intText(results?.abnormal ?? 0)} sur ${intText(
-            results?.total ?? 0,
-          )} comptes rendus`}
-          tone="warning"
-        />
+
+        {(isAdmin || isLab || isClinical) && (
+          <StatCard
+            label="Résultats anormaux"
+            value={pctText(results?.abnormalPct)}
+            hint={`${intText(results?.abnormal)} anomalies`}
+            tone="warning"
+          />
+        )}
       </div>
 
       {/* Distribution charts */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader
-            title="Démographie de la cohorte"
-            description="Répartition par zone de résidence."
-          />
-          <CardBody>
-            <BarChart data={zoneBars} />
-          </CardBody>
-        </Card>
+        {isAdmin && (
+          <Card>
+            <CardHeader
+              title="Démographie de la cohorte"
+              description="Répartition par zone de résidence."
+            />
+            <CardBody>
+              <BarChart data={zoneBars} />
+            </CardBody>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader
-            title="Profil de risque"
-            description="Répartition par groupe de risque clinique."
-          />
-          <CardBody>
-            <BarChart data={riskBars} />
-          </CardBody>
-        </Card>
+        {(isAdmin || isClinical) && (
+          <Card>
+            <CardHeader
+              title="Profil de risque"
+              description="Répartition par groupe de risque clinique."
+            />
+            <CardBody>
+              <BarChart data={riskBars} />
+            </CardBody>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader
-            title="Répartition des parcours"
-            description="Chronique (CarePlan) vs épisodique (Encounter)."
-          />
-          <CardBody>
-            <SegmentedBar segments={pathwaySegments} />
-          </CardBody>
-        </Card>
+        {(isAdmin || isClinical) && (
+          <Card>
+            <CardHeader
+              title="Répartition des parcours"
+              description="Chronique vs épisodique."
+            />
+            <CardBody>
+              <SegmentedBar segments={pathwaySegments} />
+            </CardBody>
+          </Card>
+        )}
 
         <Card>
           <CardHeader
             title="Cycle de vie des alertes"
-            description="Acquittement et escalade des DetectedIssue (§8)."
+            description="Acquittement et escalade."
             action={
-              <Badge tone="success">{pctText(alerts.acknowledgedPct)} acquittées</Badge>
+              <Badge tone="success">{pctText(alerts?.acknowledgedPct)} acquittées</Badge>
             }
           />
           <CardBody>
@@ -218,43 +257,61 @@ function KpiContent({ report }: { report: KpiReport }) {
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader
-            title="Distribution du triage (P1–P5)"
-            description="Priorisation algorithmique des cas (M2)."
-          />
-          <CardBody>
-            {triage.total === 0 ? (
-              <EmptyState title="Aucun cas trié" />
-            ) : (
-              <BarChart data={triageBars} />
-            )}
-          </CardBody>
-        </Card>
+        {(isAdmin || isClinical) && (
+          <Card>
+            <CardHeader
+              title="Distribution du triage"
+              description="Priorisation algorithmique."
+            />
+            <CardBody>
+              {(triage?.total ?? 0) === 0 ? (
+                <EmptyState title="Aucun cas trié" />
+              ) : (
+                <BarChart data={triageBars} />
+              )}
+            </CardBody>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader
-            title="Accès au DSP par rôle"
-            description="Volume d’accès audités (AuditEvent, IHE ATNA)."
-          />
-          <CardBody>
-            <BarChart data={roleBars} />
-          </CardBody>
-        </Card>
+        {isAdmin && (
+          <Card>
+            <CardHeader
+              title="Distribution de l'effectif"
+              description="Nombre de comptes par rôle RBAC."
+            />
+            <CardBody>
+              <BarChart data={staffBars} />
+            </CardBody>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader
-            title="Résultats de laboratoire & imagerie"
-            description="Comptes rendus normaux vs anormaux (M5)."
-          />
-          <CardBody>
-            {results.total === 0 ? (
-              <EmptyState title="Aucun compte rendu" />
-            ) : (
-              <SegmentedBar segments={resultSegments} />
-            )}
-          </CardBody>
-        </Card>
+        {isAdmin && (
+          <Card>
+            <CardHeader
+              title="Accès au DSP par rôle"
+              description="Volume d’accès audités (AuditEvent)."
+            />
+            <CardBody>
+              <BarChart data={roleBars} />
+            </CardBody>
+          </Card>
+        )}
+
+        {(isAdmin || isLab || isClinical) && (
+          <Card>
+            <CardHeader
+              title="Résultats de laboratoire"
+              description="Proportion de résultats anormaux."
+            />
+            <CardBody>
+              {(results?.total ?? 0) === 0 ? (
+                <EmptyState title="Aucun compte rendu" />
+              ) : (
+                <SegmentedBar segments={resultSegments} />
+              )}
+            </CardBody>
+          </Card>
+        )}
       </div>
     </div>
   );

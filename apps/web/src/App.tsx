@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Role } from '@hphii/fhir-domain';
 import { LoginPage } from './features/auth/login-page';
-import { DashboardPage } from './features/dashboard/dashboard-page';
+import { ResetPasswordPage } from './features/auth/reset-password-page';
 import { PatientsListPage } from './features/patients/patients-list-page';
 import { PatientRegistrationPage } from './features/patients/patient-registration-page';
 import { PatientDetailPage } from './features/patients/patient-detail-page';
@@ -13,19 +13,20 @@ import { PathwayEntryPage } from './features/pathway/pathway-entry-page';
 import { PathwayPage } from './features/pathway/pathway-page';
 import { TriagePage } from './features/triage/triage-page';
 import { MonitoringDashboardPage } from './features/monitoring/monitoring-dashboard-page';
-import { SmsIntakePage } from './features/monitoring/sms-intake-page';
 import { ServicesPage } from './features/services/services-page';
 import { AnalyticsPage } from './features/analytics/analytics-page';
+import { UserManagementPage } from './features/users/user-management-page';
 import { ProtectedRoute, RequireResource, RequireRole } from './routes/protected-route';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Authenticated app shell */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<DashboardPage />} />
+        <Route path="/" element={<AnalyticsPage />} />
         <Route
           path="/patients"
           element={
@@ -80,10 +81,10 @@ export default function App() {
           }
         />
         <Route
-          path="/sms-intake"
+          path="/appointments"
           element={
             <RequireRole roles={[Role.NURSE, Role.PHYSICIAN]}>
-              <SmsIntakePage />
+              <MonitoringDashboardPage mode="appointments" />
             </RequireRole>
           }
         />
@@ -124,21 +125,20 @@ export default function App() {
             </RequireRole>
           }
         />
-        {/* Analytics — balanced-scorecard KPIs (admin + physician). */}
-        <Route
-          path="/analytics"
-          element={
-            <RequireRole roles={[Role.ADMIN, Role.PHYSICIAN]}>
-              <AnalyticsPage />
-            </RequireRole>
-          }
-        />
         <Route
           path="/audit"
           element={
             <RequireResource resource="AuditEvent">
               <AuditTrailPage />
             </RequireResource>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <RequireRole roles={[Role.ADMIN]}>
+              <UserManagementPage />
+            </RequireRole>
           }
         />
       </Route>
