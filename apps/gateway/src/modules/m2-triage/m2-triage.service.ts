@@ -367,14 +367,21 @@ function toQueueEntry(encounter: Encounter): TriageQueueEntry {
   const priority = extString(encounter.extension, HphiiUrls.TRIAGE_PRIORITY) as
     | TriagePriority
     | undefined;
+  const outcome =
+    extString(encounter.extension, HphiiUrls.TRIAGE_OUTCOME) ?? defaultOutcome(priority);
   return {
     encounterId: encounter.id ?? '',
     priority: priority ?? null,
     status: encounter.status,
     patientReference: encounter.subject?.reference,
     start: encounter.period?.start,
-    outcome: extString(encounter.extension, HphiiUrls.TRIAGE_OUTCOME),
+    outcome,
   };
+}
+
+function defaultOutcome(priority: TriagePriority | undefined): TriageOutcome {
+  if (priority === TriagePriority.P4 || priority === TriagePriority.P5) return 'discharged';
+  return 'in-observation';
 }
 
 function byPriorityThenRecency(a: TriageQueueEntry, b: TriageQueueEntry): number {

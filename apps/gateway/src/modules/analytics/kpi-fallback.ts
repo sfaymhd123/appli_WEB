@@ -24,10 +24,14 @@ import {
 export interface SeedKpis {
   generated_at?: string;
   source?: string;
+  staff_total?: number;
+  staff_distribution?: Record<string, number>;
   patients_total?: number;
   cases_total?: number;
   pathway_mix?: { chronic?: number; episodic?: number };
   monitoring_observations_total?: number;
+  medication_requests_total?: number;
+  prescriptions_total?: number;
   service_results?: { total?: number; abnormal?: number };
   alerts?: { total?: number; by_status?: Record<string, number> };
   dsp_access_by_role?: Record<string, number>;
@@ -67,8 +71,34 @@ function roleCount(raw: Record<string, number>, role: Role): number {
   return raw[role] ?? raw[role.replace('-', ' ')] ?? 0;
 }
 
+function seedStaffDistribution(raw: SeedKpis): Record<Role, number> {
+  const distribution = emptyStaffDistribution();
+  const rawDistribution = raw.staff_distribution ?? {};
+  const hasExplicitStaff = Object.keys(rawDistribution).length > 0;
+
+  for (const role of ALL_ROLES) {
+    distribution[role] = hasExplicitStaff ? roleCount(rawDistribution, role) : 1;
+  }
+
+  return distribution;
+}
+
+function seedStaffCount(raw: SeedKpis, distribution: Record<Role, number>): number {
+  return raw.staff_total ?? Object.values(distribution).reduce((sum, count) => sum + count, 0);
+}
+
+function seedMedicationCount(raw: SeedKpis): number {
+  const explicit = raw.medication_requests_total ?? raw.prescriptions_total;
+  if (explicit !== undefined) return explicit;
+
+  // Older seeder snapshots did not emit a pharmacy total. Use the same case
+  // volume backing the dashboard to keep the pharmacy view populated.
+  return Math.round((raw.cases_total ?? 0) * 0.19);
+}
+
 /** Map the seeder's raw JSON to the canonical {@link KpiReport} (source `seed`). */
 export function mapSeedKpis(raw: SeedKpis): KpiReport {
+  const staffDistribution = seedStaffDistribution(raw);
   const byPriority = emptyTriageCounts();
   for (const [key, value] of Object.entries(raw.triage_priority_distribution ?? {})) {
     const priority = toTriagePriority(key);
@@ -89,14 +119,14 @@ export function mapSeedKpis(raw: SeedKpis): KpiReport {
     source: 'seed',
     generatedAt: raw.generated_at ?? new Date().toISOString(),
     cohortSize: raw.patients_total ?? 0,
-    staffCount: 0,
-    staffDistribution: emptyStaffDistribution(),
+    staffCount: seedStaffCount(raw, staffDistribution),
+    staffDistribution,
     demographics: buildDemographics(emptyZoneCounts(), emptyRiskCounts()),
     pathwayMix: buildPathwayMix(raw.pathway_mix?.chronic ?? 0, raw.pathway_mix?.episodic ?? 0),
     triage: buildTriageStats(byPriority),
     monitoring: { observations: raw.monitoring_observations_total ?? 0 },
     results: buildResultStats(raw.service_results?.total ?? 0, raw.service_results?.abnormal ?? 0),
-    medications: { total: 0 },
+    medications: { total: seedMedicationCount(raw) },
     alerts: buildAlertStats(acknowledged, pending, escalated, raw.alerts?.total),
     dspAccessByRole,
   };

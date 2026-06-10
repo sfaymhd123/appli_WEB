@@ -16,11 +16,9 @@ import {
 import { errorMessage } from '../../lib/api/error';
 import { hasPatientFilter, usePatientSearch } from '../../lib/api/hooks/use-patients';
 import type { PatientSearchFilters } from '../../lib/api/types/patient';
-import { useAuth } from '../../lib/auth/auth-context';
 import { patientDisplayName, patientMrn, patientZone } from '../patients/patient-display';
 
 export function DspEntryPage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [identifier, setIdentifier] = useState('');
@@ -85,10 +83,6 @@ export function DspEntryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dossier de Santé Partagé (DSP)</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Consultation du dossier filtrée par rôle (RBAC §6). Vue active pour le rôle{' '}
-          <span className="font-bold text-clinical-700">{user?.role}</span>.
-        </p>
       </div>
 
       <Card>

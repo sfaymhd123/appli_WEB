@@ -52,6 +52,7 @@ import type {
   EpisodeResult,
   PathwayResult,
 } from './m3-parcours.types';
+import { withDemoPathway } from './demo-pathways';
 
 /**
  * M3 — Parcours chronique (M3a) & épisodique (M3b). Materialises the
@@ -293,7 +294,7 @@ export class M3ParcoursService {
     const chronic = Boolean(activeCarePlan);
     const episodic = Boolean(activeEpisode);
 
-    return {
+    return withDemoPathway({
       patientId,
       classification: classifyPathway(chronic, episodic),
       chronic,
@@ -303,7 +304,7 @@ export class M3ParcoursService {
       activeEpisode,
       episodes,
       conditions: conditions.map(projectCondition),
-    };
+    });
   }
 
   /* ----- M4 event reaction (ARCH.md §8) ----- */

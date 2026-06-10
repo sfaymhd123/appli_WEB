@@ -114,7 +114,7 @@ export class DemoService {
         firstName: 'Fatima',
         lastName: 'Zahra',
         gender: 'female',
-        birthYear: currentYear - 58,
+        birthDate: `${currentYear - 58}-01-01`,
         zoneType: ZoneType.RURAL,
         riskGroup: RiskGroup.CHRONIC_RISK,
         phone: '+212600000010',

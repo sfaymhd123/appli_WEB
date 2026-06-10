@@ -16,10 +16,9 @@ export class CreatePatientDto {
   @IsIn(['male', 'female'])
   gender!: 'male' | 'female';
 
-  @IsInt()
-  @Min(1900)
-  @Max(CURRENT_YEAR)
-  birthYear!: number;
+  @IsString()
+  @MinLength(10)
+  birthDate!: string;
 
   @IsIn(Object.values(ZoneType))
   zoneType!: ZoneType;

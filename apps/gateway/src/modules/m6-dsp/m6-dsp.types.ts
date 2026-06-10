@@ -25,6 +25,27 @@ export interface DspAuditTrail {
   events: DspAuditEntry[];
 }
 
+/** One row of the global documents register. */
+export interface DspDocumentSummary {
+  id?: string;
+  date?: string;
+  title: string;
+  description?: string;
+  patientReference?: string;
+  patientId?: string;
+  patientName: string;
+  patientMrn?: string;
+  type: string;
+  status?: string;
+  contentData?: string;
+}
+
+/** GET /dsp/documents response. */
+export interface DspDocumentList {
+  total: number;
+  documents: DspDocumentSummary[];
+}
+
 /** Per-role filtering metadata echoed alongside the role-filtered Bundle. */
 export interface DspFilterInfo {
   role: Role;

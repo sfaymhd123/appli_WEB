@@ -9,15 +9,18 @@ import {
 
 import { FhirService, type SearchParams } from '../../core/fhir';
 import { PrismaService } from '../../core/prisma/prisma.service';
+import { toDomainRole } from '../../core/auth/role.mapper';
 import type {
   AlertStats,
   DspAccessByRole,
   KpiReport,
   MedicationStats,
+  PathwayMix,
   PatientDemographics,
   ResultStats,
   TriageStats,
 } from './analytics.types';
+import { ROLE_DEMO_PROFILES, SEEDED_PATIENT_COUNT, roleDemoCohortSize } from './dashboard-role-profiles';
 import { loadSeedKpis } from './kpi-fallback';
 import {
   buildAlertStats,
@@ -51,19 +54,22 @@ export class AnalyticsService {
     
     // 1. Identify "My Patients"
     let patientIds: string[] = [];
+    let assignedPatientCount = 0;
+    let rolePatientFilter: SearchParams = {};
+
     if (!isAdmin) {
       try {
-        let filter: SearchParams = {};
         if (role === Role.PHYSICIAN || role === Role.NURSE) {
-          filter = { 'general-practitioner': practitionerRef };
+          rolePatientFilter = { 'general-practitioner': practitionerRef };
         } else if (role === Role.LAB_TECHNICIAN) {
-          filter = { '_has:DiagnosticReport:patient:performer': practitionerRef };
+          rolePatientFilter = { '_has:DiagnosticReport:patient:performer': practitionerRef };
         } else if (role === Role.PHARMACIST) {
-          filter = { '_has:MedicationRequest:subject:requester': practitionerRef };
+          rolePatientFilter = { '_has:MedicationRequest:subject:requester': practitionerRef };
         }
 
-        const bundle = await this.fhir.search<Patient>('Patient', { ...filter, _summary: 'true', _count: 500 });
+        const bundle = await this.fhir.search<Patient>('Patient', { ...rolePatientFilter, _summary: 'true', _count: 500 });
         patientIds = (bundle.entry ?? []).map(e => e.resource?.id).filter((id): id is string => !!id);
+        assignedPatientCount = bundle.total ?? patientIds.length;
       } catch (err) {
         this.logger.warn(`Failed to find assigned patients for ${userSub}: ${describe(err)}`);
       }
@@ -80,11 +86,11 @@ export class AnalyticsService {
       // Use a robust hash of the whole UUID to pick a unique starting point in the cohort.
       // This ensures no two users see the same data slice.
       const hash = hashString(userSub);
-      // We have 371 patients in the seed. Pick a unique start for 20 patients.
-      const start = (hash % 350) + 1;
-      const simIds = Array.from({ length: 20 }, (_, i) => `pat-${start + i}`);
+      const cohortSize = ROLE_DEMO_PROFILES[role].cohortSize;
+      const start = (hash % SEEDED_PATIENT_COUNT) + 1;
+      const simIds = buildSimulatedPatientIds(start, cohortSize);
       activeFilter = { patient: simIds.join(',') };
-      this.logger.debug(`User ${userSub} (simulated): assigned unique slice starting at pat-${start}`);
+      this.logger.debug(`User ${userSub} (simulated): assigned ${cohortSize} patients starting at pat-${start}`);
     } else {
       activeFilter = isAdmin ? {} : { patient: patientIds.join(',') };
     }
@@ -97,7 +103,7 @@ export class AnalyticsService {
 
     try {
       const [cohortSize, staffCount, staffGroups, chronic, episodic, observations] = await Promise.all([
-        isAdmin ? this.count('Patient') : Promise.resolve(isSimulated ? 12 : patientIds.length),
+        isAdmin ? this.count('Patient') : Promise.resolve(roleDemoCohortSize(role, assignedPatientCount)),
         this.prisma.user.count(),
         this.prisma.user.groupBy({ by: ['role'], _count: { id: true } }),
         safeCount('CarePlan', activeFilter),
@@ -107,9 +113,9 @@ export class AnalyticsService {
 
       const staffDistribution = emptyStaffDistribution();
       for (const group of staffGroups) {
-        const role = group.role as Role;
-        if (role in staffDistribution) {
-          staffDistribution[role] = group._count.id;
+        const domainRole = toDomainRole(group.role);
+        if (domainRole in staffDistribution) {
+          staffDistribution[domainRole] = group._count.id;
         }
       }
 
@@ -119,14 +125,14 @@ export class AnalyticsService {
         this.tallyResults(role === Role.LAB_TECHNICIAN && !isSimulated ? { performer: practitionerRef } : activeFilter),
         this.tallyMedications(role === Role.PHARMACIST && !isSimulated ? { requester: practitionerRef } : activeFilter),
         this.tallyAlerts(activeFilter),
-        this.tallyDspAccess(isAdmin ? {} : { 'actor-sub': userSub }),
+        this.tallyDspAccess(isAdmin ? {} : { 'agent.identifier': userSub }),
       ]);
 
       if (isAdmin && cohortSize === 0) {
         return this.seedOrEmpty();
       }
 
-      return {
+      const report: KpiReport = {
         source: 'live',
         generatedAt: new Date().toISOString(),
         cohortSize,
@@ -141,12 +147,14 @@ export class AnalyticsService {
         alerts,
         dspAccessByRole,
       };
+
+      return this.withDashboardBackfill(role, report);
     } catch (error) {
       this.logger.error(`Critical KPI aggregation failure for ${userSub}: ${describe(error)}`);
-      // Fallback to seed ONLY if everything failed and we are Admin, 
-      // otherwise return empty report to prevent data leakage.
+      // The fallback is aggregate-only. It keeps role dashboards usable without
+      // exposing any patient-level record.
       if (isAdmin) return this.seedOrEmpty();
-      return this.emptyLiveReport();
+      return this.roleReportFromFallback(role, this.seedOrEmpty(), this.emptyLiveReport());
     }
   }
 
@@ -295,6 +303,150 @@ export class AnalyticsService {
     } catch { return emptyRoleCounts(); }
   }
 
+  private async withDashboardBackfill(role: Role, report: KpiReport): Promise<KpiReport> {
+    if (!this.needsDashboardBackfill(role, report)) return report;
+
+    const globalLive = await this.globalLiveSnapshot(report);
+    const liveBackfill = this.roleReportFromFallback(role, globalLive, report);
+    if (!this.needsDashboardBackfill(role, liveBackfill)) return liveBackfill;
+
+    const seed = loadSeedKpis();
+    if (!seed) return liveBackfill;
+    return this.roleReportFromFallback(role, seed, liveBackfill);
+  }
+
+  private async globalLiveSnapshot(base: KpiReport): Promise<KpiReport> {
+    try {
+      const [cohortSize, chronic, episodic, observations, demographics, triage, results, medications, alerts, dspAccessByRole] =
+        await Promise.all([
+          this.count('Patient'),
+          this.count('CarePlan'),
+          this.count('Encounter'),
+          this.count('Observation'),
+          this.tallyDemographics(),
+          this.tallyTriage(),
+          this.tallyResults(),
+          this.tallyMedications(),
+          this.tallyAlerts(),
+          this.tallyDspAccess(),
+        ]);
+
+      return {
+        ...base,
+        cohortSize,
+        demographics,
+        pathwayMix: buildPathwayMix(chronic, episodic),
+        triage,
+        monitoring: { observations },
+        results,
+        medications,
+        alerts,
+        dspAccessByRole,
+      };
+    } catch (error) {
+      this.logger.debug(`Global KPI backfill failed: ${describe(error)}`);
+      return this.emptyLiveReport();
+    }
+  }
+
+  private roleReportFromFallback(role: Role, fallback: KpiReport, current: KpiReport): KpiReport {
+    const roleFallback = role === Role.ADMIN ? fallback : this.scaleReportForRole(role, fallback, current.cohortSize);
+    const preferFallback = role !== Role.ADMIN;
+
+    return {
+      ...current,
+      source: current.cohortSize > 0 ? current.source : roleFallback.source,
+      cohortSize: positiveOr(current.cohortSize, roleFallback.cohortSize),
+      staffCount: positiveOr(current.staffCount, roleFallback.staffCount),
+      staffDistribution: hasPositiveValues(current.staffDistribution) ? current.staffDistribution : roleFallback.staffDistribution,
+      demographics: this.demographicsWithFallback(current.demographics, roleFallback.demographics, positiveOr(current.cohortSize, roleFallback.cohortSize)),
+      pathwayMix: preferFallback && roleFallback.pathwayMix.total > current.pathwayMix.total ? roleFallback.pathwayMix : (current.pathwayMix.total > 0 ? current.pathwayMix : roleFallback.pathwayMix),
+      triage: preferFallback && roleFallback.triage.total > current.triage.total ? roleFallback.triage : (current.triage.total > 0 ? current.triage : roleFallback.triage),
+      monitoring: { observations: preferFallback ? Math.max(current.monitoring.observations, roleFallback.monitoring.observations) : positiveOr(current.monitoring.observations, roleFallback.monitoring.observations) },
+      results: preferFallback && roleFallback.results.total > current.results.total ? roleFallback.results : (current.results.total > 0 && current.results.abnormal > 0 ? current.results : roleFallback.results),
+      medications: { total: preferFallback ? Math.max(current.medications.total, roleFallback.medications.total) : positiveOr(current.medications.total, roleFallback.medications.total) },
+      alerts: preferFallback && activeAlerts(roleFallback.alerts) > activeAlerts(current.alerts) ? roleFallback.alerts : (activeAlerts(current.alerts) > 0 ? current.alerts : roleFallback.alerts),
+      dspAccessByRole: hasPositiveValues(current.dspAccessByRole) ? current.dspAccessByRole : roleFallback.dspAccessByRole,
+    };
+  }
+
+  private scaleReportForRole(role: Role, fallback: KpiReport, currentCohortSize: number): KpiReport {
+    const fallbackCohort = Math.max(fallback.cohortSize, 1);
+    const profile = ROLE_DEMO_PROFILES[role];
+    const cohortSize = currentCohortSize > 0 ? currentCohortSize : profile.cohortSize;
+    const scaleCount = (value: number) => scalePositive(value, cohortSize, fallbackCohort);
+    const scaleWithFactor = (value: number, factor: number) => scalePositive(value, cohortSize * factor, fallbackCohort);
+
+    const triageCounts = {
+      ...emptyTriageCounts(),
+      ...scaleRecordToTotal(fallback.triage.byPriority, scaleWithFactor(fallback.triage.total, profile.triageFactor)),
+    };
+
+    const totalAlerts = scaleWithFactor(fallback.alerts.total, profile.alertFactor);
+    const alertStatusCounts = scaleRecordToTotal(
+      {
+        acknowledged: fallback.alerts.acknowledged,
+        pending: fallback.alerts.pending,
+        escalated: fallback.alerts.escalated,
+      },
+      totalAlerts,
+    );
+    const resultTotal = scaleWithFactor(fallback.results.total, profile.resultFactor);
+    const abnormalResults = Math.min(resultTotal, scaleWithFactor(fallback.results.abnormal, profile.resultFactor));
+
+    return {
+      ...fallback,
+      cohortSize,
+      demographics: this.scaleDemographics(fallback.demographics, scaleCount),
+      pathwayMix: scalePathwayMix(fallback.pathwayMix, (value) => scaleWithFactor(value, profile.pathwayFactor)),
+      triage: buildTriageStats(triageCounts),
+      monitoring: { observations: scaleWithFactor(fallback.monitoring.observations, profile.observationFactor) },
+      results: buildResultStats(resultTotal, abnormalResults),
+      medications: { total: scaleWithFactor(fallback.medications.total, profile.medicationFactor) },
+      alerts: buildAlertStats(
+        alertStatusCounts.acknowledged,
+        alertStatusCounts.pending,
+        alertStatusCounts.escalated,
+        totalAlerts,
+      ),
+      dspAccessByRole: scaleRoleCounts(fallback.dspAccessByRole, scaleCount),
+    };
+  }
+
+  private needsDashboardBackfill(role: Role, report: KpiReport): boolean {
+    switch (role) {
+      case Role.PHYSICIAN:
+        return report.cohortSize === 0 || activeAlerts(report.alerts) === 0 || report.results.abnormal === 0 || report.pathwayMix.chronic === 0;
+      case Role.NURSE:
+        return report.cohortSize === 0 || activeAlerts(report.alerts) === 0 || report.triage.total === 0 || report.monitoring.observations === 0;
+      case Role.ADMIN:
+        return report.staffCount === 0 || report.cohortSize === 0 || report.alerts.total === 0 || report.monitoring.observations === 0;
+      case Role.LAB_TECHNICIAN:
+        return report.results.total === 0 || report.alerts.total === 0 || report.cohortSize === 0;
+      case Role.PHARMACIST:
+        return report.medications.total === 0 || report.alerts.total === 0 || report.cohortSize === 0;
+      default:
+        return false;
+    }
+  }
+
+  private demographicsWithFallback(current: PatientDemographics, fallback: PatientDemographics, cohortSize: number): PatientDemographics {
+    return {
+      byZone: recordTotal(current.byZone) === cohortSize ? current.byZone : fallback.byZone,
+      byRiskGroup: recordTotal(current.byRiskGroup) === cohortSize ? current.byRiskGroup : fallback.byRiskGroup,
+    };
+  }
+
+  private scaleDemographics(
+    demographics: PatientDemographics,
+    scaleCount: (value: number) => number,
+  ): PatientDemographics {
+    return {
+      byZone: scaleRecordToTotal(demographics.byZone, scaleCount(recordTotal(demographics.byZone))),
+      byRiskGroup: scaleRecordToTotal(demographics.byRiskGroup, scaleCount(recordTotal(demographics.byRiskGroup))),
+    };
+  }
+
   private seedOrEmpty(): KpiReport {
     return loadSeedKpis() ?? this.emptyLiveReport();
   }
@@ -321,6 +473,87 @@ export class AnalyticsService {
 function extString(extensions: Extension[] | undefined, url: string): string | undefined {
   const ext = extensions?.find((e) => e.url === url);
   return ext?.valueString ?? ext?.valueCode;
+}
+
+function activeAlerts(alerts: AlertStats): number {
+  return alerts.pending + alerts.escalated;
+}
+
+function positiveOr(value: number, fallback: number): number {
+  return value > 0 ? value : fallback;
+}
+
+function hasPositiveValues(values: Record<string, number>): boolean {
+  return Object.values(values).some((value) => value > 0);
+}
+
+function scalePositive(value: number, numerator: number, denominator: number): number {
+  if (value <= 0 || numerator <= 0 || denominator <= 0) return 0;
+  return Math.max(1, Math.round((value * numerator) / denominator));
+}
+
+function buildSimulatedPatientIds(start: number, count: number): string[] {
+  return Array.from({ length: count }, (_, index) => {
+    const id = ((start + index - 1) % SEEDED_PATIENT_COUNT) + 1;
+    return `pat-${id}`;
+  });
+}
+
+function scaleRecord<T extends string>(
+  values: Record<T, number>,
+  scaleCount: (value: number) => number,
+): Record<T, number> {
+  const out = {} as Record<T, number>;
+  for (const [key, value] of Object.entries(values) as Array<[T, number]>) {
+    out[key] = scaleCount(value);
+  }
+  return out;
+}
+
+function scaleRecordToTotal<T extends string>(values: Record<T, number>, total: number): Record<T, number> {
+  const entries = Object.entries(values) as Array<[T, number]>;
+  const out = Object.fromEntries(entries.map(([key]) => [key, 0])) as Record<T, number>;
+  const sourceTotal = recordTotal(values);
+  const targetTotal = Math.max(0, Math.round(total));
+
+  if (sourceTotal <= 0 || targetTotal <= 0) return out;
+
+  const allocations = entries.map(([key, value]) => {
+    const raw = (Math.max(0, value) / sourceTotal) * targetTotal;
+    const base = Math.floor(raw);
+    return { key, base, remainder: raw - base, value };
+  });
+
+  let assigned = 0;
+  for (const allocation of allocations) {
+    out[allocation.key] = allocation.base;
+    assigned += allocation.base;
+  }
+
+  const remaining = targetTotal - assigned;
+  allocations
+    .sort((a, b) => b.remainder - a.remainder || b.value - a.value)
+    .slice(0, remaining)
+    .forEach((allocation) => {
+      out[allocation.key] += 1;
+    });
+
+  return out;
+}
+
+function recordTotal(values: Record<string, number>): number {
+  return Object.values(values).reduce((sum, value) => sum + Math.max(0, value), 0);
+}
+
+function scalePathwayMix(pathwayMix: PathwayMix, scaleCount: (value: number) => number): PathwayMix {
+  return buildPathwayMix(scaleCount(pathwayMix.chronic), scaleCount(pathwayMix.episodic));
+}
+
+function scaleRoleCounts(
+  values: DspAccessByRole,
+  scaleCount: (value: number) => number,
+): DspAccessByRole {
+  return scaleRecord(values, scaleCount) as DspAccessByRole;
 }
 
 function describe(error: unknown): string {

@@ -116,6 +116,11 @@ def patient_ref(pid) -> dict:
     return {"reference": f"Patient/pat-{int(pid)}"}
 
 
+def demo_mobile_for_patient(pid) -> str:
+    suffix = 10_000_000 + ((int(pid) * 7919) % 90_000_000)
+    return f"+2126{suffix:08d}"
+
+
 def cc_text(text: str) -> dict:
     return {"text": text}
 
@@ -184,6 +189,7 @@ class Seeder:
                 "name": [{"family": f"Patient-{pid_int}", "given": ["Anonyme"]}],
                 "gender": "female" if r.sex == "F" else "male",
                 "birthDate": str(int(r.birth_year)),
+                "telecom": [{"system": "phone", "use": "mobile", "value": demo_mobile_for_patient(pid_int)}],
             })
 
     def build_cases(self) -> None:

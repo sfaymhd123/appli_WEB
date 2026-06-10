@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { DiagnosticReport, MedicationRequest, Patient, ServiceRequest } from 'fhir/r4';
+import type { Bundle, DiagnosticReport, MedicationRequest, Patient, ServiceRequest } from 'fhir/r4';
 import { type PatientSex, ServiceCategoryLabels } from '@hphii/fhir-domain';
 
 import { DomainEventBus, type DomainEvent } from '../../core/events';
@@ -116,13 +116,16 @@ export class M5ServicesService {
 
   /** List prescriptions (optionally filtered by status, e.g. draft for the queue). */
   async listPrescriptions(status?: string): Promise<PrescriptionListResult> {
-    const params: Record<string, string | number> = { _count: 200, _sort: '-authoredon' };
+    const params: Record<string, string | number> = { _count: 200, _sort: '-authoredon', _include: 'MedicationRequest:subject' };
     if (status) params.status = status;
-    const bundle = await this.fhir.search<MedicationRequest>('MedicationRequest', params);
+    const bundle = await this.fhir.search<MedicationRequest | Patient>('MedicationRequest', params);
+    
+    const patients = extractPatients(bundle);
     const prescriptions = (bundle.entry ?? [])
       .map((entry) => entry.resource)
       .filter((resource): resource is MedicationRequest => MedicationRequestHelper.is(resource))
-      .map(projectPrescription);
+      .map((req) => projectPrescription(req, patients));
+      
     return { total: prescriptions.length, prescriptions };
   }
 
@@ -152,13 +155,16 @@ export class M5ServicesService {
 
   /** List service orders (optionally filtered by status, e.g. active = pending). */
   async listServiceRequests(status?: string): Promise<ServiceOrderListResult> {
-    const params: Record<string, string | number> = { _count: 200, _sort: '-authored' };
+    const params: Record<string, string | number> = { _count: 200, _sort: '-authored', _include: 'ServiceRequest:subject' };
     if (status) params.status = status;
-    const bundle = await this.fhir.search<ServiceRequest>('ServiceRequest', params);
+    const bundle = await this.fhir.search<ServiceRequest | Patient>('ServiceRequest', params);
+    
+    const patients = extractPatients(bundle);
     const orders = (bundle.entry ?? [])
       .map((entry) => entry.resource)
       .filter((resource): resource is ServiceRequest => ServiceRequestHelper.is(resource))
-      .map(projectServiceOrder);
+      .map((req) => projectServiceOrder(req, patients));
+      
     return { total: orders.length, orders };
   }
 
@@ -232,20 +238,19 @@ export class M5ServicesService {
 
   /** List diagnostic reports (most-recent first). */
   async listDiagnosticReports(): Promise<DiagnosticReportListResult> {
-    const bundle = await this.fhir.search<DiagnosticReport>('DiagnosticReport', {
+    const bundle = await this.fhir.search<DiagnosticReport | Patient>('DiagnosticReport', {
       _count: 200,
       _sort: '-issued',
+      _include: 'DiagnosticReport:subject'
     });
+    
+    const patients = extractPatients(bundle);
     const reports = (bundle.entry ?? [])
       .map((entry) => entry.resource)
       .filter((resource): resource is DiagnosticReport => DiagnosticReportHelper.is(resource))
-      .map(projectDiagnosticReport);
+      .map((req) => projectDiagnosticReport(req, patients));
+      
     return { total: reports.length, reports };
-  }
-
-  /** Recent abnormal-result events (polling fallback for the SSE stream). */
-  recentAbnormalNotifications(): DomainEvent[] {
-    return this.events.recentEvents().filter((event) => event.kind === 'result.abnormal');
   }
 
   /* ----- private helpers ----- */
@@ -295,6 +300,22 @@ export class M5ServicesService {
       );
     }
   }
+
+  /** Recent abnormal-result events (polling fallback for the SSE stream). */
+  recentAbnormalNotifications(): DomainEvent[] {
+    return this.events.recentEvents().filter((event) => event.kind === 'result.abnormal');
+  }
+}
+
+/** Extract all Patient resources from a bundle into a map for fast lookup. */
+function extractPatients(bundle: Bundle<any>): Map<string, Patient> {
+  const map = new Map<string, Patient>();
+  for (const entry of bundle.entry ?? []) {
+    if (entry.resource?.resourceType === 'Patient' && entry.resource.id) {
+      map.set(`Patient/${entry.resource.id}`, entry.resource);
+    }
+  }
+  return map;
 }
 
 /** PHI-safe: do NOT include the measured value here (it is stored in HAPI only). */

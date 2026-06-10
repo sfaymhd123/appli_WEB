@@ -229,7 +229,7 @@ export function PhysicianServicesPanel() {
     {
       key: 'patient',
       header: 'Patient',
-      render: (r) => <span className="font-mono text-xs">{r.patientReference?.split('/')[1] ?? '—'}</span>,
+      render: (r) => <span className="font-mono text-xs">{r.patientName ?? r.patientReference?.split('/')[1] ?? '—'}</span>,
     },
     { key: 'issued', header: 'Émis le', render: (r) => formatDateTime(r.issued) },
   ];

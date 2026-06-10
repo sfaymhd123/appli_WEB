@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Bundle, DocumentReference } from 'fhir/r4';
 import { api } from '../axios';
-import type { CreateDocumentRequest, DspAuditTrail } from '../types/dsp';
+import type { CreateDocumentRequest, DspAuditTrail, DspDocumentList } from '../types/dsp';
 
 export const dspKeys = {
   all: ['dsp'] as const,
@@ -15,8 +15,8 @@ export const dspKeys = {
 export function useGlobalDocuments() {
   return useQuery({
     queryKey: dspKeys.globalDocuments(),
-    queryFn: async (): Promise<Bundle<DocumentReference>> => {
-      const { data } = await api.get<Bundle<DocumentReference>>('/dsp/documents');
+    queryFn: async (): Promise<DspDocumentList> => {
+      const { data } = await api.get<DspDocumentList>('/dsp/documents');
       return data;
     },
   });
@@ -78,6 +78,7 @@ export function useExportDocument() {
     onSuccess: (_data, vars) => {
       void queryClient.invalidateQueries({ queryKey: dspKeys.record(vars.patientId) });
       void queryClient.invalidateQueries({ queryKey: dspKeys.audit(vars.patientId) });
+      void queryClient.invalidateQueries({ queryKey: dspKeys.globalDocuments() });
     },
   });
 }

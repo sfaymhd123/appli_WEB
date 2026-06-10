@@ -105,7 +105,7 @@ export function PharmacistQueuePanel() {
       key: 'patient',
       header: 'Patient',
       render: (p) => (
-        <span className="font-mono text-xs">{patientIdFromReference(p.patientReference) ?? '—'}</span>
+        <span className="font-mono text-xs">{p.patientName ?? patientIdFromReference(p.patientReference) ?? '—'}</span>
       ),
     },
     {

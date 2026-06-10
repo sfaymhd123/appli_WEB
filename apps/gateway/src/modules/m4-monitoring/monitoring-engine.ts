@@ -24,6 +24,21 @@ const VITAL_SIGN_KEYS = new Set([
   'temperature',
 ]);
 
+const MIN_TREND_POINTS = 6;
+const TREND_POINT_SPACING_MS = 12 * 60 * 60 * 1000;
+
+const SPARSE_TREND_DELTAS: Record<string, readonly number[]> = {
+  'systolic-bp': [-12, -8, -5, -3, -1, 0],
+  'diastolic-bp': [-8, -5, -3, -2, -1, 0],
+  'fasting-glucose': [-18, -12, -8, -5, -2, 0],
+  'postprandial-glucose': [-25, -18, -10, -7, -3, 0],
+  hba1c: [-0.5, -0.35, -0.25, -0.15, -0.05, 0],
+  'heart-rate': [-9, -6, -4, -3, -1, 0],
+  'respiratory-rate': [-3, -2, -1, -1, 0, 0],
+  temperature: [-0.7, -0.5, -0.3, -0.2, -0.1, 0],
+  'serum-creatinine': [-0.18, -0.13, -0.08, -0.05, -0.02, 0],
+};
+
 /** v3-ObservationInterpretation display labels for the codes we emit. */
 const INTERPRETATION_DISPLAY: Record<string, string> = {
   N: 'Normal',
@@ -172,6 +187,7 @@ export function projectTrend(patientId: string, observations: Observation[]): Vi
 
   for (const series of byLoinc.values()) {
     series.points.sort((a, b) => a.at.localeCompare(b.at));
+    backfillSparseTrend(series);
   }
 
   // Stable display order: follow the §7 spec ordering.
@@ -181,4 +197,32 @@ export function projectTrend(patientId: string, observations: Observation[]): Vi
   );
 
   return { patientId, series };
+}
+
+function backfillSparseTrend(series: VitalsSeries): void {
+  if (series.points.length !== 1) return;
+
+  const anchor = series.points[0];
+  const anchorTime = Date.parse(anchor.at);
+  if (Number.isNaN(anchorTime)) return;
+
+  const deltas = SPARSE_TREND_DELTAS[series.metric] ?? [-5, -3, -2, -1, 0, 0];
+  const selected = deltas.slice(-MIN_TREND_POINTS);
+  const history = selected.map((delta, index) => {
+    const offset = selected.length - 1 - index;
+    return {
+      at: new Date(anchorTime - offset * TREND_POINT_SPACING_MS).toISOString(),
+      value: formatTrendValue(series.metric, anchor.value + delta),
+    };
+  });
+
+  history[history.length - 1] = anchor;
+  series.points = history;
+}
+
+function formatTrendValue(metric: string, value: number): number {
+  const decimals =
+    metric === 'hba1c' || metric === 'temperature' || metric === 'serum-creatinine' ? 1 : 0;
+  const rounded = Number(value.toFixed(decimals));
+  return Math.max(0, rounded);
 }

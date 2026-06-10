@@ -4,6 +4,7 @@ import type {
   Extension,
   MedicationRequest,
   Observation,
+  Patient,
   Quantity,
   ServiceRequest,
 } from 'fhir/r4';
@@ -315,14 +316,19 @@ function resultInterpretationExtension(abnormal: boolean): Extension {
  * Projections for the API/UI
  * ========================================================== */
 
-export function projectPrescription(resource: MedicationRequest): PrescriptionSummary {
+export function projectPrescription(resource: MedicationRequest, patients?: Map<string, Patient>): PrescriptionSummary {
   const medication =
     resource.medicationCodeableConcept?.text ??
     resource.medicationCodeableConcept?.coding?.[0]?.display ??
     '—';
+  
+  const patientRef = resource.subject?.reference;
+  const patientName = extractNameFromPatient(patientRef ? patients?.get(patientRef) : undefined);
+
   return {
     id: resource.id ?? '',
-    patientReference: resource.subject?.reference,
+    patientReference: patientRef,
+    patientName,
     status: resource.status ?? 'unknown',
     intent: resource.intent,
     priority: resource.priority,
@@ -336,10 +342,14 @@ export function projectPrescription(resource: MedicationRequest): PrescriptionSu
   };
 }
 
-export function projectServiceOrder(resource: ServiceRequest): ServiceOrderSummary {
+export function projectServiceOrder(resource: ServiceRequest, patients?: Map<string, Patient>): ServiceOrderSummary {
+  const patientRef = resource.subject?.reference;
+  const patientName = extractNameFromPatient(patientRef ? patients?.get(patientRef) : undefined);
+
   return {
     id: resource.id ?? '',
-    patientReference: resource.subject?.reference,
+    patientReference: patientRef,
+    patientName,
     status: resource.status ?? 'unknown',
     category: categoryFromSnomed(resource.category?.[0]),
     display: resource.code?.text ?? resource.code?.coding?.[0]?.display ?? '—',
@@ -350,13 +360,18 @@ export function projectServiceOrder(resource: ServiceRequest): ServiceOrderSumma
   };
 }
 
-export function projectDiagnosticReport(resource: DiagnosticReport): DiagnosticReportSummary {
+export function projectDiagnosticReport(resource: DiagnosticReport, patients?: Map<string, Patient>): DiagnosticReportSummary {
   const abnormal =
     resource.extension?.find((ext) => ext.url === HphiiUrls.RESULT_INTERPRETATION)?.valueCode ===
     INTERPRETATION_ABNORMAL;
+
+  const patientRef = resource.subject?.reference;
+  const patientName = extractNameFromPatient(patientRef ? patients?.get(patientRef) : undefined);
+
   return {
     id: resource.id ?? '',
-    patientReference: resource.subject?.reference,
+    patientReference: patientRef,
+    patientName,
     status: resource.status ?? 'unknown',
     category: categoryFromDiagnostic(resource.category?.[0]),
     loinc: resource.code?.coding?.find((c) => c.system === CodeSystems.LOINC)?.code,
@@ -367,6 +382,16 @@ export function projectDiagnosticReport(resource: DiagnosticReport): DiagnosticR
     basedOnServiceRequestId: referenceId(resource.basedOn?.[0]?.reference),
   };
 }
+
+function extractNameFromPatient(patient?: Patient): string | undefined {
+  if (!patient || !patient.name || patient.name.length === 0) return undefined;
+  const name = patient.name[0];
+  const given = name.given?.join(' ') ?? '';
+  const family = name.family ?? '';
+  const full = `${given} ${family}`.trim();
+  return full.length > 0 ? full : undefined;
+}
+
 
 function categoryFromSnomed(concept?: CodeableConcept): ServiceCategory | undefined {
   const code = concept?.coding?.find((c) => c.system === CodeSystems.SNOMED_CT)?.code;

@@ -24,6 +24,7 @@ export interface StockAvailability {
 export interface PrescriptionSummary {
   id: string;
   patientReference?: string;
+  patientName?: string;
   /** FHIR MedicationRequest.status (draft → active | cancelled). */
   status: string;
   intent?: string;
@@ -54,6 +55,7 @@ export interface MedicationOrderResult {
 export interface ServiceOrderSummary {
   id: string;
   patientReference?: string;
+  patientName?: string;
   /** FHIR ServiceRequest.status (active → completed | revoked). */
   status: string;
   category?: ServiceCategory;
@@ -74,6 +76,7 @@ export interface ServiceOrderListResult {
 export interface DiagnosticReportSummary {
   id: string;
   patientReference?: string;
+  patientName?: string;
   status: string;
   category?: ServiceCategory;
   loinc?: string;

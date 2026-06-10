@@ -6,10 +6,11 @@ export interface CreatePatientRequest {
   firstName: string;
   lastName: string;
   gender: 'male' | 'female';
-  birthYear: number;
+  birthDate: string;
   zoneType: ZoneType;
   riskGroup: RiskGroup;
   phone?: string;
+  generalPractitioner?: string;
 }
 
 /** Body for POST /patients/:id/coverage (mirrors CreateCoverageDto). */

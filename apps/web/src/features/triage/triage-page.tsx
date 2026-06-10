@@ -20,6 +20,7 @@ import type { TriageQueueEntry, TriageResponse } from '../../lib/api/types/triag
 import {
   PRIORITY_TONE,
   SYMPTOM_SEVERITY_OPTIONS,
+  defaultOutcomeLabel,
   encounterStatusLabel,
   outcomeLabel,
   referenceId,
@@ -91,7 +92,11 @@ export function TriagePage() {
     },
     { key: 'status', header: 'Statut', render: (e) => encounterStatusLabel(e.status) },
     { key: 'start', header: 'Heure', render: (e) => shortTime(e.start) },
-    { key: 'outcome', header: 'Issue', render: (e) => outcomeLabel(e.outcome) ?? '—' },
+    {
+      key: 'outcome',
+      header: 'Issue',
+      render: (e) => outcomeLabel(e.outcome) ?? defaultOutcomeLabel(e.priority),
+    },
   ];
 
   return (

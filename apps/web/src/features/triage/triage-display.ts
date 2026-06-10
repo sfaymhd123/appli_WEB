@@ -43,6 +43,12 @@ export function outcomeLabel(outcome?: string): string | undefined {
   return (TriageOutcomeLabels as Record<string, string>)[outcome] ?? outcome;
 }
 
+export function defaultOutcomeLabel(priority?: TriagePriority | null): string {
+  return priority === 'P4' || priority === 'P5'
+    ? TriageOutcomeLabels.discharged
+    : TriageOutcomeLabels['in-observation'];
+}
+
 /** Last path segment of a FHIR reference (e.g. "Patient/123" → "123"). */
 export function referenceId(reference?: string): string | undefined {
   return reference?.split('/').pop();

@@ -10,7 +10,12 @@ import {
 
 import { AuditEventHelper, DocumentReferenceHelper, FhirService } from '../../core/fhir';
 import type { CreateDocumentDto } from './dto/create-document.dto';
-import type { DspAuditEntry, DspAuditTrail } from './m6-dsp.types';
+import type {
+  DspAuditEntry,
+  DspAuditTrail,
+  DspDocumentList,
+  DspDocumentSummary,
+} from './m6-dsp.types';
 
 /** LOINC "Patient summary Document" — the type of the exported DSP summary. */
 const PATIENT_SUMMARY_LOINC = '60591-5';
@@ -102,11 +107,26 @@ export class M6DspService {
   }
 
   /** Global DocumentReference list (M6). */
-  async listDocuments(): Promise<Bundle<DocumentReference>> {
-    return this.fhir.search<DocumentReference>('DocumentReference', {
+  async listDocuments(): Promise<DspDocumentList> {
+    const bundle = await this.fhir.search<DocumentReference>('DocumentReference', {
       _count: 100,
       _sort: '-date',
     });
+    const documents = (bundle.entry ?? [])
+      .map((entry) => entry.resource)
+      .filter((resource): resource is DocumentReference => DocumentReferenceHelper.is(resource));
+
+    const patientIds = unique(
+      documents
+        .map((document) => referenceId(document.subject?.reference))
+        .filter((id): id is string => Boolean(id)),
+    );
+    const patients = await this.resolvePatients(patientIds);
+    const rows = documents.map((document) =>
+      this.toDocumentSummary(document, patients.get(referenceId(document.subject?.reference) ?? '')),
+    );
+
+    return { total: rows.length, documents: rows };
   }
 
   /** Global AuditEvent trail (Admin only). */
@@ -166,4 +186,61 @@ export class M6DspService {
       entity: event.entity?.[0]?.what?.reference,
     };
   }
+
+  private async resolvePatients(patientIds: string[]): Promise<Map<string, Patient>> {
+    const entries = await Promise.all(
+      patientIds.map(async (id): Promise<[string, Patient] | undefined> => {
+        try {
+          return [id, await this.fhir.read<Patient>('Patient', id)];
+        } catch {
+          return undefined;
+        }
+      }),
+    );
+    return new Map(entries.filter((entry): entry is [string, Patient] => entry !== undefined));
+  }
+
+  private toDocumentSummary(
+    document: DocumentReference,
+    patient?: Patient,
+  ): DspDocumentSummary {
+    const attachment = document.content?.[0]?.attachment;
+    const patientId = referenceId(document.subject?.reference);
+    return {
+      id: document.id,
+      date: document.date,
+      title: attachment?.title ?? document.description ?? 'Sans titre',
+      description: document.description,
+      patientReference: document.subject?.reference,
+      patientId,
+      patientName: patient ? patientDisplayName(patient) : patientId ?? 'Patient inconnu',
+      patientMrn: patient ? patientMrn(patient) : undefined,
+      type: document.type?.text ?? 'Document',
+      status: document.status,
+      contentData: attachment?.data,
+    };
+  }
+}
+
+function referenceId(ref?: string): string | undefined {
+  return ref?.split('/').pop();
+}
+
+function unique(values: string[]): string[] {
+  return [...new Set(values)];
+}
+
+function patientDisplayName(patient: Patient): string {
+  const name = patient.name?.[0];
+  if (!name) return patient.id ?? 'Patient inconnu';
+  const given = name.given?.join(' ') ?? '';
+  const composed = [given, name.family].filter(Boolean).join(' ');
+  return composed || name.text || patient.id || 'Patient inconnu';
+}
+
+function patientMrn(patient: Patient): string | undefined {
+  return (
+    patient.identifier?.find((id) => id.system === HphiiUrls.PATIENT_ID)?.value ??
+    patient.identifier?.[0]?.value
+  );
 }

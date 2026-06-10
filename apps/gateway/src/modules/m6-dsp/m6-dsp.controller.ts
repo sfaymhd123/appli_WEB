@@ -9,7 +9,7 @@ import { RequireAction } from '../../core/rbac/decorators/require-action.decorat
 import { Roles } from '../../core/rbac/decorators/roles.decorator';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { M6DspService } from './m6-dsp.service';
-import type { DspAuditTrail } from './m6-dsp.types';
+import type { DspAuditTrail, DspDocumentList } from './m6-dsp.types';
 
 /**
  * M6 — DSP / SHR. The Shared Health Record facade.
@@ -23,7 +23,7 @@ export class M6DspController {
   @Get('documents')
   @Roles(Role.ADMIN, Role.PHYSICIAN, Role.NURSE)
   @Audit('R')
-  listDocuments(): Promise<Bundle<DocumentReference>> {
+  listDocuments(): Promise<DspDocumentList> {
     return this.dsp.listDocuments();
   }
 

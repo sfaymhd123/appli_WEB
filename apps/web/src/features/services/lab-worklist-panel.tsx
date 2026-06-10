@@ -155,7 +155,7 @@ export function LabWorklistPanel() {
       key: 'patient',
       header: 'Patient',
       render: (o) => (
-        <span className="font-mono text-xs">{patientIdFromReference(o.patientReference) ?? '—'}</span>
+        <span className="font-mono text-xs">{o.patientName ?? patientIdFromReference(o.patientReference) ?? '—'}</span>
       ),
     },
     { key: 'authoredOn', header: 'Demandé le', render: (o) => formatDateTime(o.authoredOn) },
@@ -270,7 +270,7 @@ export function LabWorklistPanel() {
               <p className="font-semibold text-gray-900">{target.display}</p>
               <p className="text-xs text-gray-500">
                 {serviceCategoryLabel(target.category)} · LOINC {target.loinc ?? '—'} · Patient{' '}
-                {patientIdFromReference(target.patientReference) ?? '—'}
+                {target.patientName ?? patientIdFromReference(target.patientReference) ?? '—'}
               </p>
             </div>
 

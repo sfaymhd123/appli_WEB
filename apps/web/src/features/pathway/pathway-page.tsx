@@ -95,9 +95,9 @@ export function PathwayPage() {
         <Link to="/care-plans" className="text-sm text-clinical-700 hover:underline">
           ← Parcours de soins
         </Link>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">Parcours de soins (M3)</h1>
+        <h1 className="mt-1 text-2xl font-bold text-gray-900">Parcours de soins</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Modules M3a / M3b — <span className="font-mono">Patient/{patientId}</span>
+          <span className="font-mono">Patient/{patientId}</span>
           {patientName && <> · {patientName}</>}
         </p>
       </div>
@@ -133,8 +133,8 @@ export function PathwayPage() {
             {/* ---------- Chronic side (M3a) ---------- */}
             <Card>
               <CardHeader
-                title="Parcours chronique (M3a)"
-                description="CarePlan : objectifs, activités, équipe de soins et conditions suivies."
+                title="Parcours chronique"
+                description="Objectifs, activités, équipe de soins et conditions suivies."
                 action={
                   <Button size="sm" onClick={() => setModal({ kind: 'create-careplan' })}>
                     Ouvrir un plan
@@ -160,9 +160,6 @@ export function PathwayPage() {
                         {activeCarePlan.description && (
                           <p className="text-sm text-gray-600">{activeCarePlan.description}</p>
                         )}
-                        <p className="mt-1 font-mono text-xs text-gray-400">
-                          CarePlan/{activeCarePlan.id}
-                        </p>
                       </div>
                       <Badge tone={carePlanStatusTone(activeCarePlan.status)}>
                         {carePlanStatusLabel(activeCarePlan.status)}
@@ -216,7 +213,7 @@ export function PathwayPage() {
                       {activeCarePlan.conditions.length ? (
                         <ul className="space-y-1 text-sm text-gray-700">
                           {activeCarePlan.conditions.map((c) => (
-                            <li key={c.id}>{c.display ?? c.code ?? `Condition/${c.id}`}</li>
+                            <li key={c.id}>{c.display ?? c.code ?? 'Condition non précisée'}</li>
                           ))}
                         </ul>
                       ) : (
@@ -259,7 +256,7 @@ export function PathwayPage() {
                       {pastCarePlans.map((cp) => (
                         <li key={cp.id} className="flex items-center justify-between gap-2 text-sm">
                           <span className="truncate text-gray-700">
-                            {cp.title ?? `CarePlan/${cp.id}`}
+                            {cp.title ?? 'Plan de soins'}
                           </span>
                           <Badge tone={carePlanStatusTone(cp.status)}>
                             {carePlanStatusLabel(cp.status)}
@@ -275,8 +272,8 @@ export function PathwayPage() {
             {/* ---------- Episodic side (M3b) ---------- */}
             <Card>
               <CardHeader
-                title="Parcours épisodique (M3b)"
-                description="Encounter + Condition : épisode aigu, ouvert puis clôturé."
+                title="Parcours épisodique"
+                description="Épisode aigu, ouvert puis clôturé."
                 action={
                   <Button size="sm" onClick={() => setModal({ kind: 'create-episode' })}>
                     Ouvrir un épisode
@@ -295,9 +292,6 @@ export function PathwayPage() {
                           {activeEpisode.class ? `Classe ${activeEpisode.class} · ` : ''}
                           Début {shortDateTime(activeEpisode.start)}
                         </p>
-                        <p className="mt-1 font-mono text-xs text-gray-400">
-                          Encounter/{activeEpisode.id}
-                        </p>
                       </div>
                       <Badge tone={encounterStatusTone(activeEpisode.status)}>
                         {encounterStatusLabel(activeEpisode.status)}
@@ -308,7 +302,7 @@ export function PathwayPage() {
                       {activeEpisode.conditions.length ? (
                         <ul className="space-y-1 text-sm text-gray-700">
                           {activeEpisode.conditions.map((c) => (
-                            <li key={c.id}>{c.display ?? c.code ?? `Condition/${c.id}`}</li>
+                            <li key={c.id}>{c.display ?? c.code ?? 'Condition non précisée'}</li>
                           ))}
                         </ul>
                       ) : (
@@ -350,7 +344,7 @@ export function PathwayPage() {
                       {pastEpisodes.map((ep) => (
                         <li key={ep.id} className="flex items-center justify-between gap-2 text-sm">
                           <span className="truncate text-gray-700">
-                            {ep.reason ?? `Encounter/${ep.id}`}
+                            {ep.reason ?? 'Épisode de soins'}
                             <span className="ml-1 text-gray-400">{shortDate(ep.end ?? ep.start)}</span>
                           </span>
                           <Badge tone={encounterStatusTone(ep.status)}>
@@ -379,11 +373,7 @@ export function PathwayPage() {
                     <li key={c.id} className="flex items-start justify-between gap-3 py-2.5">
                       <div className="min-w-0">
                         <p className="truncate text-sm text-gray-900">
-                          {c.display ?? c.code ?? `Condition/${c.id}`}
-                        </p>
-                        <p className="font-mono text-xs text-gray-400">
-                          Condition/{c.id}
-                          {c.category ? ` · ${c.category}` : ''}
+                          {c.display ?? c.code ?? 'Condition non précisée'}
                         </p>
                       </div>
                       <div className="shrink-0 text-right">
@@ -509,7 +499,7 @@ function CreateCarePlanForm({ patientId, onClose }: { patientId: string; onClose
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const result = await create.mutateAsync({
+      await create.mutateAsync({
         patientId,
         title: title.trim() || undefined,
         description: description.trim() || undefined,
@@ -518,7 +508,7 @@ function CreateCarePlanForm({ patientId, onClose }: { patientId: string; onClose
         activities: parseList(activities).map((description) => ({ description })),
         careTeam: parseList(careTeam).map((name) => ({ name })),
       });
-      toast(`Plan de soins ouvert : CarePlan/${result.summary.id}.`, 'success');
+      toast('Plan de soins ouvert.', 'success');
       onClose();
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -729,13 +719,13 @@ function CreateEpisodeForm({ patientId, onClose }: { patientId: string; onClose:
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const result = await create.mutateAsync({
+      await create.mutateAsync({
         patientId,
         complaint: complaint.trim() || undefined,
         conditions: parseList(conditions).map((display) => ({ display })),
         emergency,
       });
-      toast(`Épisode ouvert : Encounter/${result.summary.id}.`, 'success');
+      toast('Épisode ouvert.', 'success');
       onClose();
     } catch (error) {
       toast(errorMessage(error), 'error');
@@ -841,11 +831,11 @@ function SwitchToChronicForm({ episode, onClose }: { episode: EpisodeSummary; on
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      const carePlan = await switchToChronic.mutateAsync({
+      await switchToChronic.mutateAsync({
         episodeId: episode.id,
         body: { title: title.trim() || undefined, goals: parseList(goals), closeEpisode },
       });
-      toast(`Épisode basculé en chronique : CarePlan/${carePlan.id ?? '—'}.`, 'success');
+      toast('Épisode basculé en chronique.', 'success');
       onClose();
     } catch (error) {
       toast(errorMessage(error), 'error');

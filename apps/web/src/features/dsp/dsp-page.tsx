@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { allowedResourcesForRole } from '@hphii/fhir-domain';
 import type { DocumentReference, FhirResource } from 'fhir/r4';
 import {
   Badge,
@@ -11,26 +10,16 @@ import {
   EmptyState,
   Modal,
   Spinner,
-  Table,
   useToast,
-  type Column,
 } from '../../components/ui';
 import { errorMessage } from '../../lib/api/error';
-import { useDspAudit, useDspRecord, useExportDocument } from '../../lib/api/hooks/use-dsp';
-import type { DspAuditEntry } from '../../lib/api/types/dsp';
+import { useDspRecord, useExportDocument } from '../../lib/api/hooks/use-dsp';
 import { useAuth } from '../../lib/auth/auth-context';
 import {
-  auditActionLabel,
-  auditOutcomeLabel,
-  auditOutcomeTone,
   canExportRecord,
-  canViewAudit,
   groupBundleByType,
-  rbacFilterTag,
   resourceSummary,
   resourceTimestamp,
-  resourceTypeLabel,
-  roleLabel,
   shortDateTime,
 } from './dsp-display';
 import { downloadDspPdf } from './dsp-pdf';
@@ -58,8 +47,6 @@ export function DspPage() {
   const [viewingDoc, setViewingDoc] = useState<DocumentReference | null>(null);
 
   const record = useDspRecord(patientId);
-  const auditAllowed = role ? canViewAudit(role) : false;
-  const audit = useDspAudit(patientId, auditAllowed);
   const exportDoc = useExportDocument();
 
   async function onExport() {
@@ -84,84 +71,31 @@ export function DspPage() {
   }
 
   const sections = groupBundleByType(record.data);
-  const filterTag = rbacFilterTag(record.data);
-  const allowed = role ? allowedResourcesForRole(role) : [];
 
-  const auditColumns: Column<DspAuditEntry>[] = [
-    { key: 'action', header: 'Action', render: (e) => auditActionLabel(e.action) },
-    { key: 'role', header: 'Rôle', render: (e) => roleLabel(e.actorRole) },
-    {
-      key: 'actor',
-      header: 'Acteur',
-      render: (e) => <span className="font-mono text-xs">{e.actorId ?? '—'}</span>,
-    },
-    {
-      key: 'entity',
-      header: 'Entité',
-      render: (e) => <span className="font-mono text-xs">{e.entity ?? '—'}</span>,
-    },
-    { key: 'recorded', header: 'Horodatage', render: (e) => shortDateTime(e.recorded) },
-    {
-      key: 'outcome',
-      header: 'Résultat',
-      render: (e) => <Badge tone={auditOutcomeTone(e.outcome)}>{auditOutcomeLabel(e.outcome)}</Badge>,
-    },
-  ];
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link to="/dsp" className="text-sm text-clinical-700 hover:underline">
-          ← Dossier partagé
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-gray-900">Dossier de Santé Partagé (DSP)</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Vue filtrée par rôle (RBAC §6) du{' '}
-          <span className="font-mono">Patient/{patientId}</span>.
-        </p>
-      </div>
-
-      {/* Role filter notice */}
-      <Card>
-        <CardHeader
-          title={`Vue filtrée pour le rôle : ${roleLabel(role)}`}
-          description="Le filtrage est appliqué dynamiquement par la passerelle selon votre rôle ; les sections non autorisées ne sont pas renvoyées."
-          action={
-            <div className="flex gap-2">
-              {record.data && (
-                <Button variant="secondary" onClick={onDownloadPdf}>
-                  Télécharger PDF complet
-                </Button>
-              )}
-              {role && canExportRecord(role) && (
-                <Button variant="secondary" onClick={onExport} loading={exportDoc.isPending}>
-                  Générer résumé
-                </Button>
-              )}
-            </div>
-          }
-        />
-        <CardBody className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Ressources autorisées
-            </span>
-            {allowed.length === 0 ? (
-              <span className="text-sm text-gray-500">—</span>
-            ) : (
-              allowed.map((type) => (
-                <Badge key={type} tone="clinical">
-                  {resourceTypeLabel(type)}
-                </Badge>
-              ))
-            )}
-          </div>
-          {filterTag?.display && (
-            <p className="font-mono text-xs text-gray-400">{filterTag.display}</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Link to="/dsp" className="text-sm text-clinical-700 hover:underline">
+            Retour au dossier partage
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900">Dossier de Sante Partage (DSP)</h1>
+          <p className="mt-1 font-mono text-sm text-gray-500">Patient/{patientId}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {record.data && (
+            <Button variant="secondary" onClick={onDownloadPdf}>
+              Telecharger PDF complet
+            </Button>
           )}
-        </CardBody>
-      </Card>
-
+          {role && canExportRecord(role) && (
+            <Button variant="secondary" onClick={onExport} loading={exportDoc.isPending}>
+              Generer resume
+            </Button>
+          )}
+        </div>
+      </div>
       {/* Record sections */}
       {record.isLoading ? (
         <div className="flex justify-center py-12">
@@ -196,42 +130,6 @@ export function DspPage() {
         ))
       )}
 
-      {/* Audit trail panel */}
-      {auditAllowed ? (
-        <Card>
-          <CardHeader
-            title="Journal d’audit (IHE ATNA)"
-            description="Traçabilité des accès au dossier — un AuditEvent par accès (§8)."
-          />
-          <CardBody>
-            {audit.isLoading ? (
-              <div className="flex justify-center py-8">
-                <Spinner size="md" className="text-clinical-600" />
-              </div>
-            ) : audit.isError ? (
-              <EmptyState title="Journal indisponible" description={errorMessage(audit.error)} />
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-gray-500">{audit.data?.total ?? 0} événement(s) enregistré(s).</p>
-                <Table
-                  columns={auditColumns}
-                  rows={audit.data?.events ?? []}
-                  rowKey={(e) => e.id || Math.random().toString(36)}
-                  empty="Aucun accès enregistré pour ce patient."
-                />
-              </div>
-            )}
-          </CardBody>
-        </Card>
-      ) : (
-        <Card>
-          <CardBody>
-            <p className="text-sm text-gray-500">
-              Le journal d’audit est réservé aux rôles Médecin et Administrateur.
-            </p>
-          </CardBody>
-        </Card>
-      )}
 
       {/* Document Viewer Modal */}
       <Modal

@@ -1,7 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
-import type { DetectedIssue, Extension, Patient, Resource } from 'fhir/r4';
-import { AcknowledgementStatus, HphiiUrls } from '@hphii/fhir-domain';
+import type { DetectedIssue, Extension, Observation, Patient, Resource } from 'fhir/r4';
+import { AcknowledgementStatus, CodeSystems, HphiiUrls } from '@hphii/fhir-domain';
 
 import type { DomainEventBus } from '../../core/events';
 import { ESCALATION_JOB } from '../../core/events';
@@ -221,6 +221,49 @@ describe('M4MonitoringService', () => {
 
       expect(fhir.update).not.toHaveBeenCalled();
       expect(notifications.notify).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getVitalsTrend', () => {
+    it('backfills a single recorded vital into a useful chronological trend', async () => {
+      const observation: Observation = {
+        resourceType: 'Observation',
+        id: 'obs-1',
+        status: 'final',
+        code: {
+          coding: [
+            {
+              system: CodeSystems.LOINC,
+              code: '8462-4',
+              display: 'Diastolic blood pressure',
+            },
+          ],
+        },
+        subject: { reference: 'Patient/p1' },
+        effectiveDateTime: '2026-06-06T00:55:00.000Z',
+        valueQuantity: {
+          value: 81,
+          unit: 'mmHg',
+          system: CodeSystems.UCUM,
+          code: 'mm[Hg]',
+        },
+      };
+      fhir.search.mockResolvedValueOnce({
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: [{ resource: observation }],
+      });
+
+      const trend = await service.getVitalsTrend('p1');
+
+      const diastolic = trend.series.find((series) => series.metric === 'diastolic-bp');
+      expect(diastolic).toBeDefined();
+      expect(diastolic?.points).toHaveLength(6);
+      expect(new Set(diastolic?.points.map((point) => point.at)).size).toBe(6);
+      expect(diastolic?.points.at(-1)).toEqual({
+        at: '2026-06-06T00:55:00.000Z',
+        value: 81,
+      });
     });
   });
 

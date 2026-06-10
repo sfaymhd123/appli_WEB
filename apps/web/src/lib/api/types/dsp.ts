@@ -19,6 +19,25 @@ export interface DspAuditTrail {
   events: DspAuditEntry[];
 }
 
+export interface DspDocumentSummary {
+  id?: string;
+  date?: string;
+  title: string;
+  description?: string;
+  patientReference?: string;
+  patientId?: string;
+  patientName: string;
+  patientMrn?: string;
+  type: string;
+  status?: string;
+  contentData?: string;
+}
+
+export interface DspDocumentList {
+  total: number;
+  documents: DspDocumentSummary[];
+}
+
 /** POST /dsp/:patientId/documents request body. */
 export interface CreateDocumentRequest {
   title?: string;

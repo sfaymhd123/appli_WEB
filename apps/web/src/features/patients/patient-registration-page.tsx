@@ -15,6 +15,7 @@ import {
 import { errorMessage } from '../../lib/api/error';
 import { useAddCoverage, useRegisterPatient } from '../../lib/api/hooks/use-patients';
 import type { CoverageResult } from '../../lib/api/types/patient';
+import { useAuth } from '../../lib/auth/auth-context';
 import {
   COVERAGE_SCHEME_OPTIONS,
   GENDER_OPTIONS,
@@ -28,9 +29,8 @@ interface RegistrationOutcome {
   coverage: CoverageResult;
 }
 
-const CURRENT_YEAR = new Date().getFullYear();
-
 export function PatientRegistrationPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const register = useRegisterPatient();
   const addCoverage = useAddCoverage();
@@ -39,7 +39,7 @@ export function PatientRegistrationPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [gender, setGender] = useState('');
-  const [birthYear, setBirthYear] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [zoneType, setZoneType] = useState('');
   const [riskGroup, setRiskGroup] = useState('');
   const [phone, setPhone] = useState('');
@@ -55,10 +55,11 @@ export function PatientRegistrationPage() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         gender: gender as 'male' | 'female',
-        birthYear: Number(birthYear),
+        birthDate: birthDate,
         zoneType: zoneType as ZoneType,
         riskGroup: riskGroup as RiskGroup,
         phone: phone.trim() || undefined,
+        generalPractitioner: user ? `Practitioner/${user.sub}` : undefined,
       });
       if (!patient.id) {
         throw new Error('Le serveur FHIR n’a pas renvoyé d’identifiant.');
@@ -79,7 +80,7 @@ export function PatientRegistrationPage() {
     setFirstName('');
     setLastName('');
     setGender('');
-    setBirthYear('');
+    setBirthDate('');
     setZoneType('');
     setRiskGroup('');
     setPhone('');
@@ -166,15 +167,12 @@ export function PatientRegistrationPage() {
                 onChange={(e) => setGender(e.target.value)}
               />
               <TextField
-                name="birthYear"
-                label="Année de naissance"
-                type="number"
-                inputMode="numeric"
-                min={1900}
-                max={CURRENT_YEAR}
+                name="birthDate"
+                label="Date de naissance"
+                type="date"
                 required
-                value={birthYear}
-                onChange={(e) => setBirthYear(e.target.value)}
+                value={birthDate}
+                onChange={(e) => setBirthDate(e.target.value)}
               />
               <SelectField
                 name="zoneType"

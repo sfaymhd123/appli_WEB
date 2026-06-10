@@ -209,6 +209,53 @@ describe('AnalyticsService', () => {
       const countedTypes = countCalls.map(([type]) => type);
       expect(countedTypes).toEqual(expect.arrayContaining(['Patient', 'CarePlan', 'Encounter', 'Observation']));
     });
+
+    it('backfills an empty role slice with scaled seed KPIs for dashboard cards', async () => {
+      loadSeedKpisMock.mockReturnValue({
+        source: 'seed',
+        generatedAt: '2026-05-30T15:40:00+00:00',
+        cohortSize: 371,
+        staffCount: 5,
+        staffDistribution: { Physician: 1, Nurse: 1, Admin: 1, Pharmacist: 1, 'Lab-Technician': 1 },
+        demographics: {
+          byZone: { Rural: 100, Urban: 200, 'Peri-urban': 71 },
+          byRiskGroup: { Standard: 200, 'Chronic-risk': 100, Elderly: 50, Pediatric: 21 },
+        },
+        pathwayMix: { chronic: 232, episodic: 299, total: 531, chronicPct: 43.7, episodicPct: 56.3 },
+        triage: { byPriority: { P1: 51, P2: 140, P3: 303, P4: 164, P5: 0 }, total: 658, criticalPct: 7.8 },
+        monitoring: { observations: 10440 },
+        results: { total: 553, abnormal: 94, abnormalPct: 17 },
+        medications: { total: 101 },
+        alerts: {
+          total: 625,
+          acknowledged: 420,
+          pending: 138,
+          escalated: 67,
+          acknowledgedPct: 67.2,
+          pendingPct: 22.1,
+          escalatedPct: 10.7,
+          unacknowledgedPct: 32.8,
+        },
+        dspAccessByRole: { Physician: 816, Nurse: 767, Admin: 400, Pharmacist: 318, 'Lab-Technician': 320 },
+      });
+      const search = jest.fn(async (_type: string, params: Record<string, unknown> = {}) =>
+        params._summary === 'count' || params._summary === 'true' ? countset(0) : searchset([]),
+      );
+
+      const kpis = await makeService(search).getKpis(Role.PHYSICIAN, 'physician-without-assignments');
+
+      expect(kpis.cohortSize).toBe(520);
+      expect(kpis.pathwayMix.chronic).toBeGreaterThan(0);
+      expect(kpis.results.abnormal).toBeGreaterThan(0);
+      expect(kpis.alerts.pending + kpis.alerts.escalated).toBeGreaterThan(0);
+      expect(kpis.monitoring.observations).toBeGreaterThan(0);
+      expect(sumValues(kpis.demographics.byZone)).toBe(kpis.cohortSize);
+      expect(sumValues(kpis.demographics.byRiskGroup)).toBe(kpis.cohortSize);
+      expect(sumValues(kpis.triage.byPriority)).toBe(kpis.triage.total);
+      expect(kpis.alerts.acknowledged + kpis.alerts.pending + kpis.alerts.escalated).toBe(kpis.alerts.total);
+      expect(kpis.results.abnormal).toBeLessThanOrEqual(kpis.results.total);
+      expect(loadSeedKpisMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('getKpis (seed fallback)', () => {
@@ -316,6 +363,8 @@ describe('mapSeedKpis', () => {
   it('recomputes percentages that match the seeder figures', () => {
     const kpis = mapSeedKpis(seedJson);
     expect(kpis.source).toBe('seed');
+    expect(kpis.staffCount).toBe(5);
+    expect(kpis.medications.total).toBe(101);
     expect(kpis.pathwayMix).toMatchObject({ chronicPct: 43.7, episodicPct: 56.3 });
     expect(kpis.results.abnormalPct).toBe(17);
     expect(kpis.alerts).toMatchObject({
@@ -339,3 +388,7 @@ describe('loadSeedKpis (real docs/kpis.json)', () => {
     expect(kpis?.alerts.total).toBe(625);
   });
 });
+
+function sumValues(values: Record<string, number>): number {
+  return Object.values(values).reduce((sum, value) => sum + value, 0);
+}

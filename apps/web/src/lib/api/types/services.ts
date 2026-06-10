@@ -18,6 +18,7 @@ export interface StockAvailability {
 export interface PrescriptionSummary {
   id: string;
   patientReference?: string;
+  patientName?: string;
   status: string;
   intent?: string;
   medication: string;
@@ -42,6 +43,7 @@ export interface MedicationOrderResult {
 export interface ServiceOrderSummary {
   id: string;
   patientReference?: string;
+  patientName?: string;
   status: string;
   category?: ServiceCategory;
   display: string;
@@ -59,6 +61,7 @@ export interface ServiceOrderListResult {
 export interface DiagnosticReportSummary {
   id: string;
   patientReference?: string;
+  patientName?: string;
   status: string;
   category?: ServiceCategory;
   loinc?: string;

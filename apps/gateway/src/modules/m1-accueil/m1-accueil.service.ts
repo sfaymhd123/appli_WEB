@@ -1,15 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import type { Extension, Patient } from 'fhir/r4';
-import { HphiiUrls, type CoverageScheme } from '@hphii/fhir-domain';
+import type { Bundle, Extension, Patient, Practitioner } from 'fhir/r4';
+import { HphiiUrls, Role, type CoverageScheme } from '@hphii/fhir-domain';
 
 import { CoverageHelper, FhirService, PatientHelper, type SearchParams } from '../../core/fhir';
+import type { AuthenticatedUser } from '../../core/auth/auth.types';
+import { roleDemoCohortSize } from '../analytics/dashboard-role-profiles';
 import type { CreateCoverageDto } from './dto/create-coverage.dto';
 import type { CreatePatientDto } from './dto/create-patient.dto';
 import type { SearchPatientsDto } from './dto/search-patients.dto';
 import type { CoverageResult, EligibilityResult, PatientSearchResult } from './m1-accueil.types';
+import { withDemoMobile } from './patient-demo-mobile';
 
 /** M1 — Accueil & Identité. Patient identity + RAMED/AMO/Private coverage. */
+const ADMIN_PATIENT_SEARCH_LIMIT = 5000;
+
 @Injectable()
 export class M1AccueilService {
   private readonly logger = new Logger(M1AccueilService.name);
@@ -20,7 +25,8 @@ export class M1AccueilService {
   async register(dto: CreatePatientDto): Promise<Patient> {
     const mrn = await this.generateUniqueMrn();
     const currentYear = new Date().getFullYear();
-    const age = currentYear - dto.birthYear;
+    const birthYear = parseInt(dto.birthDate.split('-')[0], 10);
+    const age = currentYear - birthYear;
 
     // PoC logic (§5): Auto-assign to Elderly risk group if age >= 65.
     const effectiveRiskGroup = age >= 65 ? 'Elderly' : dto.riskGroup;
@@ -30,8 +36,7 @@ export class M1AccueilService {
       identifier: [{ system: HphiiUrls.PATIENT_ID, value: mrn }],
       name: [{ family: dto.lastName, given: [dto.firstName] }],
       gender: dto.gender,
-      // Year-precision FHIR date — matches the cohort seeder's birthDate.
-      birthDate: String(dto.birthYear),
+      birthDate: dto.birthDate,
       extension: [
         { url: HphiiUrls.ZONE_TYPE, valueString: dto.zoneType },
         { url: HphiiUrls.RISK_GROUP, valueString: effectiveRiskGroup },
@@ -41,15 +46,17 @@ export class M1AccueilService {
       patient.telecom = [{ system: 'phone', value: dto.phone, use: 'mobile' }];
     }
     if (dto.generalPractitioner) {
+      await this.ensurePractitioner(dto.generalPractitioner);
       patient.generalPractitioner = [{ reference: dto.generalPractitioner }];
     }
     this.logger.log('Registering Patient (new HPHII identifier allocated)');
-    return this.fhir.create(patient);
+    return this.fhir.create(withDemoMobile(patient));
   }
 
   /** Read one Patient by its HAPI logical id. */
   async findById(id: string): Promise<Patient> {
-    return this.fhir.read<Patient>('Patient', id);
+    const patient = await this.fhir.read<Patient>('Patient', id);
+    return withDemoMobile(patient);
   }
 
   /** Create or Update a Practitioner (internal use for seeding). */
@@ -62,8 +69,9 @@ export class M1AccueilService {
    * risk-group are stored as extensions (not searchable in HAPI) and are
    * therefore filtered gateway-side over the returned page.
    */
-  async search(query: SearchPatientsDto): Promise<PatientSearchResult> {
-    const params: SearchParams = { _count: 50 };
+  async search(query: SearchPatientsDto, user: AuthenticatedUser): Promise<PatientSearchResult> {
+    const patientLimit = await this.patientSearchLimit(user);
+    const params: SearchParams = { _count: Math.min(patientLimit, 1000) };
     if (query.identifier) {
       const idValue = query.identifier.trim();
       // If the user searches for "pat-123", they likely mean the logical ID.
@@ -75,22 +83,70 @@ export class M1AccueilService {
     }
     if (query.name) params.name = query.name;
 
-    const bundle = await this.fhir.search<Patient>('Patient', params);
-    let patients = (bundle.entry ?? [])
-      .map((entry) => entry.resource)
-      .filter((resource): resource is Patient => PatientHelper.is(resource));
+    const patients: Patient[] = [];
+    let bundle = await this.fhir.search<Patient>('Patient', params);
 
-    if (query.zone) {
-      patients = patients.filter(
-        (p) => extensionValue(p.extension, HphiiUrls.ZONE_TYPE) === query.zone,
-      );
+    while (bundle && patients.length < patientLimit) {
+      patients.push(...this.matchingPatients(bundle, query).slice(0, patientLimit - patients.length));
+
+      const nextLink = bundle.link?.find((link) => link.relation === 'next')?.url;
+      if (!nextLink) break;
+      bundle = await this.fhir.searchByUrl<Patient>(nextLink);
     }
-    if (query.riskGroup) {
-      patients = patients.filter(
-        (p) => extensionValue(p.extension, HphiiUrls.RISK_GROUP) === query.riskGroup,
-      );
-    }
+
     return { total: patients.length, patients };
+  }
+
+  private matchingPatients(bundle: Bundle<Patient>, query: SearchPatientsDto): Patient[] {
+    return (bundle.entry ?? [])
+      .map((entry) => entry.resource)
+      .filter((resource): resource is Patient => PatientHelper.is(resource))
+      .filter((patient) => {
+        if (query.zone && extensionValue(patient.extension, HphiiUrls.ZONE_TYPE) !== query.zone) {
+          return false;
+        }
+        if (
+          query.riskGroup &&
+          extensionValue(patient.extension, HphiiUrls.RISK_GROUP) !== query.riskGroup
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .map((patient) => withDemoMobile(patient));
+  }
+
+  private async patientSearchLimit(user: AuthenticatedUser): Promise<number> {
+    if (user.role === Role.ADMIN) return ADMIN_PATIENT_SEARCH_LIMIT;
+
+    const assignedCount = await this.assignedPatientCount(user);
+    return roleDemoCohortSize(user.role, assignedCount);
+  }
+
+  private async assignedPatientCount(user: AuthenticatedUser): Promise<number> {
+    if (user.role !== Role.PHYSICIAN && user.role !== Role.NURSE) return 0;
+
+    const bundle = await this.fhir.search<Patient>('Patient', {
+      'general-practitioner': `Practitioner/${user.sub}`,
+      _summary: 'count',
+    });
+    return bundle.total ?? 0;
+  }
+
+  private async ensurePractitioner(reference: string): Promise<void> {
+    const match = /^Practitioner\/([^/]+)$/.exec(reference);
+    if (!match) return;
+
+    const id = match[1];
+    try {
+      await this.fhir.read<Practitioner>('Practitioner', id);
+    } catch {
+      await this.fhir.update<Practitioner>({
+        resourceType: 'Practitioner',
+        id,
+        active: true,
+      });
+    }
   }
 
   /** Create a Coverage for a patient and run a simulated eligibility check. */

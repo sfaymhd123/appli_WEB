@@ -141,6 +141,54 @@ describe('M6DspService', () => {
     });
   });
 
+  describe('listDocuments', () => {
+    it('projects documents with resolved patient display fields', async () => {
+      fhir.search.mockResolvedValue({
+        resourceType: 'Bundle',
+        type: 'searchset',
+        entry: [
+          {
+            resource: {
+              resourceType: 'DocumentReference',
+              id: 'doc-1',
+              status: 'current',
+              date: '2026-06-09T03:52:51Z',
+              subject: { reference: 'Patient/p1' },
+              type: { text: 'Resume du dossier patient' },
+              content: [
+                {
+                  attachment: {
+                    title: 'Resume de sejour',
+                    data: Buffer.from('hello', 'utf8').toString('base64'),
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      });
+      fhir.read.mockResolvedValueOnce({
+        resourceType: 'Patient',
+        id: 'p1',
+        identifier: [{ system: HphiiUrls.PATIENT_ID, value: 'HPHII-2026-000001' }],
+        name: [{ given: ['Fatima'], family: 'Zahra' }],
+      });
+
+      const result = await service.listDocuments();
+
+      expect(result.total).toBe(1);
+      expect(result.documents[0]).toMatchObject({
+        id: 'doc-1',
+        title: 'Resume de sejour',
+        patientId: 'p1',
+        patientName: 'Fatima Zahra',
+        patientMrn: 'HPHII-2026-000001',
+        type: 'Resume du dossier patient',
+        status: 'current',
+      });
+    });
+  });
+
   describe('getAuditTrail', () => {
     it('queries AuditEvents by patient entity and projects PHI-safe rows', async () => {
       fhir.search.mockResolvedValue({

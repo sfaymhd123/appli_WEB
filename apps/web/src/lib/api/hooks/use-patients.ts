@@ -54,6 +54,7 @@ export function useRegisterPatient() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: patientKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ['kpis'] });
     },
   });
 }

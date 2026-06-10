@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import type { Patient } from 'fhir/r4';
@@ -19,6 +20,7 @@ import { CreatePatientDto } from './dto/create-patient.dto';
 import { SearchPatientsDto } from './dto/search-patients.dto';
 import { M1AccueilService } from './m1-accueil.service';
 import type { CoverageResult, PatientSearchResult } from './m1-accueil.types';
+import type { AuthenticatedRequest } from '../../core/auth/auth.types';
 
 /** Minimal shape of the response object we need — avoids an express type dep. */
 interface ResponseLike {
@@ -52,8 +54,11 @@ export class M1AccueilController {
   }
 
   @Get('patients')
-  search(@Query() query: SearchPatientsDto): Promise<PatientSearchResult> {
-    return this.m1.search(query);
+  search(
+    @Query() query: SearchPatientsDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<PatientSearchResult> {
+    return this.m1.search(query, req.user);
   }
 
   @Get('patients/:id')

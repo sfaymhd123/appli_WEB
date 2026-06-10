@@ -12,7 +12,6 @@ import { useKpis } from '../../lib/api/hooks/use-kpis';
 import { useAuth } from '../../lib/auth/auth-context';
 import type { KpiReport } from '../../lib/api/types/kpis';
 import { BarChart, SegmentedBar, StatCard, type BarDatum, type Segment } from './kpi-charts';
-import { DemoCard } from './demo-card';
 
 const PRIORITY_COLOR: Record<TriagePriority, string> = {
   P1: 'bg-priority-p1',
@@ -145,12 +144,6 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
         {!isAdmin && <Badge tone="clinical">Vue Personnalisée</Badge>}
         <span className="text-xs text-gray-500">Généré le {formatGeneratedAt(report.generatedAt)}</span>
       </div>
-
-      {isClinical && (
-        <div className="max-w-xl">
-          <DemoCard />
-        </div>
-      )}
 
       {/* Scorecard headline metrics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
