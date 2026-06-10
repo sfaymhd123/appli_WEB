@@ -26,10 +26,22 @@ function decodeDocumentContent(data?: string): string {
 
   try {
     const bytes = Uint8Array.from(atob(data), (char) => char.charCodeAt(0));
-    return new TextDecoder('utf-8').decode(bytes);
+    return sanitizeDocumentContent(new TextDecoder('utf-8').decode(bytes));
   } catch {
     return 'Contenu du document illisible.';
   }
+}
+
+function sanitizeDocumentContent(content: string): string {
+  return content.replace(/urgent@hphii\.ma/gi, 'service clinique HPHII');
+}
+
+function sanitizeDocumentTitle(title: string): string {
+  return title
+    .replace(/R�sum�/gi, 'Résumé')
+    .replace(/RÃ©sumÃ©/gi, 'Résumé')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 export function DocumentsPage() {
@@ -48,7 +60,7 @@ export function DocumentsPage() {
       key: 'title',
       header: 'Titre',
       render: (document) => (
-        <span className="font-medium text-gray-900">{document.title}</span>
+        <span className="font-medium text-gray-900">{sanitizeDocumentTitle(document.title)}</span>
       ),
     },
     {
@@ -128,7 +140,7 @@ export function DocumentsPage() {
       <Modal
         open={viewingDocument !== null}
         onClose={() => setViewingDocument(null)}
-        title={viewingDocument?.title ?? 'Document'}
+        title={viewingDocument ? sanitizeDocumentTitle(viewingDocument.title) : 'Document'}
         className="max-w-3xl"
         footer={<Button onClick={() => setViewingDocument(null)}>Fermer</Button>}
       >

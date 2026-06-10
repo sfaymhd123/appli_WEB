@@ -167,11 +167,13 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           />
         )}
 
-        <StatCard
-          label="Observations"
-          value={intText(monitoring?.observations)}
-          hint="Mesures vitales"
-        />
+        {!isLab && (
+          <StatCard
+            label="Observations"
+            value={intText(monitoring?.observations)}
+            hint="Mesures vitales"
+          />
+        )}
 
         {(isAdmin || isClinical) && (
           <StatCard
@@ -182,12 +184,14 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           />
         )}
 
-        <StatCard
-          label="Alertes actives"
-          value={pctText(alerts?.unacknowledgedPct)}
-          hint={`${intText(alerts?.pending)} en attente`}
-          tone={(alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
-        />
+        {!isLab && (
+          <StatCard
+            label="Alertes actives"
+            value={pctText(alerts?.unacknowledgedPct)}
+            hint={`${intText(alerts?.pending)} en attente`}
+            tone={(alerts?.escalated ?? 0) > 0 ? 'danger' : 'warning'}
+          />
+        )}
 
         {(isAdmin || isLab || isClinical) && (
           <StatCard
@@ -237,18 +241,20 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           </Card>
         )}
 
-        <Card>
-          <CardHeader
-            title="Cycle de vie des alertes"
-            description="Acquittement et escalade."
-            action={
-              <Badge tone="success">{pctText(alerts?.acknowledgedPct)} acquittées</Badge>
-            }
-          />
-          <CardBody>
-            <SegmentedBar segments={alertSegments} />
-          </CardBody>
-        </Card>
+        {!isLab && (
+          <Card>
+            <CardHeader
+              title="Cycle de vie des alertes"
+              description="Acquittement et escalade."
+              action={
+                <Badge tone="success">{pctText(alerts?.acknowledgedPct)} acquittées</Badge>
+              }
+            />
+            <CardBody>
+              <SegmentedBar segments={alertSegments} />
+            </CardBody>
+          </Card>
+        )}
 
         {(isAdmin || isClinical) && (
           <Card>

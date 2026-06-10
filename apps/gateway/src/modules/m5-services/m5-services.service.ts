@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Bundle, DiagnosticReport, MedicationRequest, Patient, ServiceRequest } from 'fhir/r4';
+import type { Bundle, DiagnosticReport, MedicationRequest, Patient, Practitioner, ServiceRequest } from 'fhir/r4';
 import { type PatientSex, ServiceCategoryLabels } from '@hphii/fhir-domain';
 
 import { DomainEventBus, type DomainEvent } from '../../core/events';
@@ -185,6 +185,9 @@ export class M5ServicesService {
     const patientRef = `Patient/${dto.patientId}`;
     const sex = patientSex(patient);
     const issued = new Date().toISOString();
+    if (performerRef) {
+      await this.ensurePractitioner(performerRef);
+    }
 
     const abnormal = deriveAbnormal({
       loinc: dto.loinc,
@@ -259,6 +262,22 @@ export class M5ServicesService {
   private async requirePatientRef(patientId: string): Promise<string> {
     await this.fhir.read<Patient>('Patient', patientId);
     return `Patient/${patientId}`;
+  }
+
+  private async ensurePractitioner(reference: string): Promise<void> {
+    const match = /^Practitioner\/([^/]+)$/.exec(reference);
+    if (!match) return;
+
+    const id = match[1];
+    try {
+      await this.fhir.read<Practitioner>('Practitioner', id);
+    } catch {
+      await this.fhir.update<Practitioner>({
+        resourceType: 'Practitioner',
+        id,
+        active: true,
+      });
+    }
   }
 
   /** Notify the ordering physician of an abnormal result (PHI-safe: no value). */

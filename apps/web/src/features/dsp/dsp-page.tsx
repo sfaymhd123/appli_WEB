@@ -32,10 +32,14 @@ function decodeBase64Utf8(base64: string): string {
     for (let i = 0; i < binaryString.length; i += 1) {
       bytes[i] = binaryString.charCodeAt(i);
     }
-    return new TextDecoder().decode(bytes);
+    return sanitizeDocumentContent(new TextDecoder().decode(bytes));
   } catch {
     return '(Erreur de décodage du contenu)';
   }
+}
+
+function sanitizeDocumentContent(content: string): string {
+  return content.replace(/urgent@hphii\.ma/gi, 'service clinique HPHII');
 }
 
 export function DspPage() {

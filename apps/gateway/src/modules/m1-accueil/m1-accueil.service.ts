@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import type { Bundle, Extension, Patient, Practitioner } from 'fhir/r4';
+import type { Bundle, Coverage, Extension, Patient, Practitioner } from 'fhir/r4';
 import { HphiiUrls, Role, type CoverageScheme } from '@hphii/fhir-domain';
 
 import { CoverageHelper, FhirService, PatientHelper, type SearchParams } from '../../core/fhir';
@@ -56,7 +56,7 @@ export class M1AccueilService {
   /** Read one Patient by its HAPI logical id. */
   async findById(id: string): Promise<Patient> {
     const patient = await this.fhir.read<Patient>('Patient', id);
-    return withDemoMobile(patient);
+    return withPatientDisplayDefaults(patient);
   }
 
   /** Create or Update a Practitioner (internal use for seeding). */
@@ -71,7 +71,7 @@ export class M1AccueilService {
    */
   async search(query: SearchPatientsDto, user: AuthenticatedUser): Promise<PatientSearchResult> {
     const patientLimit = await this.patientSearchLimit(user);
-    const params: SearchParams = { _count: Math.min(patientLimit, 1000) };
+    const params: SearchParams = { _count: Math.min(patientLimit, 1000), _sort: '-_lastUpdated' };
     if (query.identifier) {
       const idValue = query.identifier.trim();
       // If the user searches for "pat-123", they likely mean the logical ID.
@@ -94,7 +94,9 @@ export class M1AccueilService {
       bundle = await this.fhir.searchByUrl<Patient>(nextLink);
     }
 
-    return { total: patients.length, patients };
+    const enrichedPatients = await this.withCoverageSchemes(patients);
+    enrichedPatients.sort(comparePatientsByLastUpdatedDesc);
+    return { total: enrichedPatients.length, patients: enrichedPatients };
   }
 
   private matchingPatients(bundle: Bundle<Patient>, query: SearchPatientsDto): Patient[] {
@@ -113,7 +115,7 @@ export class M1AccueilService {
         }
         return true;
       })
-      .map((patient) => withDemoMobile(patient));
+      .map((patient) => withPatientDisplayDefaults(patient));
   }
 
   private async patientSearchLimit(user: AuthenticatedUser): Promise<number> {
@@ -152,7 +154,7 @@ export class M1AccueilService {
   /** Create a Coverage for a patient and run a simulated eligibility check. */
   async addCoverage(patientId: string, dto: CreateCoverageDto): Promise<CoverageResult> {
     // Confirm the patient exists (404s early; also anchors the AuditEvent entity).
-    await this.fhir.read<Patient>('Patient', patientId);
+    const patient = await this.fhir.read<Patient>('Patient', patientId);
 
     const coverage = CoverageHelper.build({
       status: 'active',
@@ -168,7 +170,43 @@ export class M1AccueilService {
       coverage.subscriberId = dto.memberId;
     }
     const created = await this.fhir.create(coverage);
+    await this.fhir.update(withCoverageScheme(patient, dto.scheme));
     return { coverage: created, eligibility: this.simulateEligibility(patientId, dto.scheme) };
+  }
+
+  private async withCoverageSchemes(patients: Patient[]): Promise<Patient[]> {
+    const missingCoverage = patients.filter((patient) => !extensionValue(patient.extension, HphiiUrls.COVERAGE_SCHEME));
+    if (missingCoverage.length === 0) return patients;
+
+    const coverageByPatient = new Map<string, CoverageScheme>();
+    for (const chunk of chunkArray(missingCoverage, 80)) {
+      const refs = chunk
+        .map((patient) => patient.id)
+        .filter((id): id is string => Boolean(id))
+        .map((id) => `Patient/${id}`);
+      if (refs.length === 0) continue;
+
+      const bundle = await this.fhir.search<Coverage>('Coverage', {
+        beneficiary: refs.join(','),
+        status: 'active',
+        _count: 1000,
+      });
+      for (const entry of bundle.entry ?? []) {
+        const coverage = entry.resource;
+        const patientId = coverage?.beneficiary?.reference?.replace(/^Patient\//, '');
+        const scheme = coverageScheme(coverage);
+        if (patientId && scheme && !coverageByPatient.has(patientId)) {
+          coverageByPatient.set(patientId, scheme);
+        }
+      }
+    }
+
+    if (coverageByPatient.size === 0) return patients;
+
+    return patients.map((patient) => {
+      const scheme = patient.id ? coverageByPatient.get(patient.id) : undefined;
+      return scheme ? withCoverageScheme(patient, scheme) : patient;
+    });
   }
 
   /** Generate HPHII-{year}-{6 hex} and confirm it is unused in HAPI. */
@@ -206,6 +244,95 @@ export class M1AccueilService {
 /** First matching extension's valueString, or undefined. */
 function extensionValue(extensions: Extension[] | undefined, url: string): string | undefined {
   return extensions?.find((ext) => ext.url === url)?.valueString;
+}
+
+function comparePatientsByLastUpdatedDesc(a: Patient, b: Patient): number {
+  const aTime = Date.parse(a.meta?.lastUpdated ?? '');
+  const bTime = Date.parse(b.meta?.lastUpdated ?? '');
+  const aSortable = Number.isNaN(aTime) ? 0 : aTime;
+  const bSortable = Number.isNaN(bTime) ? 0 : bTime;
+  return bSortable - aSortable;
+}
+
+function withPatientDisplayDefaults(patient: Patient): Patient {
+  return withDemoBirthDate(withDemoMobile(withDemoHphiiIdentifier(patient)));
+}
+
+function withDemoHphiiIdentifier(patient: Patient): Patient {
+  if (patient.identifier?.some((id) => id.system === HphiiUrls.PATIENT_ID && isHphiiIdentifier(id.value))) {
+    return patient;
+  }
+
+  return {
+    ...patient,
+    identifier: [
+      { system: HphiiUrls.PATIENT_ID, value: demoHphiiIdentifier(patient) },
+      ...(patient.identifier ?? []),
+    ],
+  };
+}
+
+function demoHphiiIdentifier(patient: Patient): string {
+  const stableId =
+    patient.identifier?.[0]?.value ??
+    patient.id ??
+    patient.name?.[0]?.family ??
+    patient.birthDate ??
+    'patient';
+  const suffix = (hashString(`${stableId}|hphii-id`) % 0xffffff)
+    .toString(16)
+    .padStart(6, '0')
+    .toUpperCase();
+  return `HPHII-${new Date().getFullYear()}-${suffix}`;
+}
+
+function isHphiiIdentifier(value: string | undefined): boolean {
+  return /^HPHII-\d{4}-[A-Z0-9]{6}$/i.test(value ?? '');
+}
+
+function withCoverageScheme(patient: Patient, scheme: CoverageScheme): Patient {
+  const extensions = (patient.extension ?? []).filter((ext) => ext.url !== HphiiUrls.COVERAGE_SCHEME);
+  return {
+    ...patient,
+    extension: [...extensions, { url: HphiiUrls.COVERAGE_SCHEME, valueString: scheme }],
+  };
+}
+
+function coverageScheme(coverage: Coverage | undefined): CoverageScheme | undefined {
+  const codedScheme = coverage?.type?.coding?.find((coding) => coding.system === HphiiUrls.COVERAGE_SCHEME)?.code;
+  const scheme = codedScheme ?? coverage?.type?.text;
+  return isCoverageScheme(scheme) ? scheme : undefined;
+}
+
+function isCoverageScheme(value: string | undefined): value is CoverageScheme {
+  return value === 'RAMED' || value === 'AMO' || value === 'Private';
+}
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function withDemoBirthDate(patient: Patient): Patient {
+  if (!/^\d{4}$/.test(patient.birthDate ?? '')) return patient;
+
+  const stableId =
+    patient.identifier?.find((id) => id.system === HphiiUrls.PATIENT_ID)?.value ??
+    patient.identifier?.[0]?.value ??
+    patient.id ??
+    patient.name?.[0]?.family ??
+    patient.birthDate;
+  const seed = hashString(`${stableId}|birth-date`);
+  const month = String((seed % 12) + 1).padStart(2, '0');
+  const day = String((Math.floor(seed / 12) % 28) + 1).padStart(2, '0');
+
+  return {
+    ...patient,
+    birthDate: `${patient.birthDate}-${month}-${day}`,
+  };
 }
 
 /** Tiny deterministic string hash; for simulation only, not security. */

@@ -122,7 +122,7 @@ export class AnalyticsService {
       const [demographics, triage, results, medications, alerts, dspAccessByRole] = await Promise.all([
         this.tallyDemographics(isAdmin ? {} : { _id: isSimulated ? (activeFilter.patient as string) : patientIds.join(',') }),
         this.tallyTriage(activeFilter),
-        this.tallyResults(role === Role.LAB_TECHNICIAN && !isSimulated ? { performer: practitionerRef } : activeFilter),
+        this.tallyResultsForRole(role, activeFilter, practitionerRef, isSimulated),
         this.tallyMedications(role === Role.PHARMACIST && !isSimulated ? { requester: practitionerRef } : activeFilter),
         this.tallyAlerts(activeFilter),
         this.tallyDspAccess(isAdmin ? {} : { 'agent.identifier': userSub }),
@@ -301,6 +301,27 @@ export class AnalyticsService {
       }
       return counts;
     } catch { return emptyRoleCounts(); }
+  }
+
+  private async tallyResultsForRole(
+    role: Role,
+    activeFilter: SearchParams,
+    practitionerRef: string,
+    isSimulated: boolean,
+  ): Promise<ResultStats> {
+    if (role !== Role.LAB_TECHNICIAN) return this.tallyResults(activeFilter);
+
+    const completed = await this.tallyResults(!isSimulated ? { performer: practitionerRef } : activeFilter);
+    const pending = await this.countActiveServiceRequests(isSimulated ? activeFilter : {});
+    return buildResultStats(completed.total + pending, completed.abnormal);
+  }
+
+  private async countActiveServiceRequests(filter: SearchParams = {}): Promise<number> {
+    try {
+      return await this.count('ServiceRequest', { ...filter, status: 'active' });
+    } catch {
+      return 0;
+    }
   }
 
   private async withDashboardBackfill(role: Role, report: KpiReport): Promise<KpiReport> {

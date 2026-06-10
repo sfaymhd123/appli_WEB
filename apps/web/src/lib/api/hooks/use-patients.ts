@@ -74,6 +74,7 @@ export function useAddCoverage() {
       return data;
     },
     onSuccess: (_data, vars) => {
+      void queryClient.invalidateQueries({ queryKey: patientKeys.all });
       void queryClient.invalidateQueries({ queryKey: patientKeys.detail(vars.patientId) });
     },
   });

@@ -28,6 +28,7 @@ import type { PatientSearchFilters } from '../../lib/api/types/patient';
 import type { DiagnosticReportSummary, ServiceNotificationEvent } from '../../lib/api/types/services';
 import { patientDisplayName, patientMrn } from '../patients/patient-display';
 import {
+  COMMON_MEDICATIONS,
   COMMON_STUDIES,
   PRIORITY_OPTIONS,
   SERVICE_CATEGORY_OPTIONS,
@@ -87,6 +88,23 @@ export function PhysicianServicesPanel() {
   const [quantity, setQuantity] = useState('');
   const [quantityUnit, setQuantityUnit] = useState('');
   const [medNote, setMedNote] = useState('');
+
+  const medicationOptions: SelectOption[] = useMemo(
+    () => COMMON_MEDICATIONS.map((preset) => ({ value: preset.medication, label: preset.medication })),
+    [],
+  );
+  const dosageOptions: SelectOption[] = useMemo(() => {
+    const preset = COMMON_MEDICATIONS.find((item) => item.medication === medication);
+    return (preset?.dosages ?? []).map((dose) => ({ value: dose, label: dose }));
+  }, [medication]);
+
+  function changeMedication(value: string) {
+    const preset = COMMON_MEDICATIONS.find((item) => item.medication === value);
+    setMedication(value);
+    setDosage(preset?.dosages[0] ?? '');
+    setQuantity(preset?.quantity ? String(preset.quantity) : '');
+    setQuantityUnit(preset?.quantityUnit ?? '');
+  }
 
   async function submitMedication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -344,20 +362,23 @@ export function PhysicianServicesPanel() {
           <CardHeader title="Prescrire un médicament" description="Crée une demande à valider par le pharmacien." />
           <CardBody>
             <form className="space-y-4" onSubmit={submitMedication}>
-              <TextField
+              <SelectField
                 name="medication"
                 label="Médicament"
-                placeholder="ex. Metformine 500 mg"
+                placeholder="Choisir un médicament courant..."
+                options={medicationOptions}
                 value={medication}
-                onChange={(e) => setMedication(e.target.value)}
+                onChange={(e) => changeMedication(e.target.value)}
                 required
               />
-              <TextField
+              <SelectField
                 name="dosage"
                 label="Posologie"
-                placeholder="ex. 1 comprimé matin et soir"
+                placeholder={medication ? 'Choisir une posologie...' : 'Choisir d’abord un médicament...'}
+                options={dosageOptions}
                 value={dosage}
                 onChange={(e) => setDosage(e.target.value)}
+                disabled={!medication}
                 required
               />
               <div className="grid gap-4 sm:grid-cols-2">

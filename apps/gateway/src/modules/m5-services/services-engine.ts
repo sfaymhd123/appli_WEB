@@ -346,7 +346,7 @@ export function projectServiceOrder(resource: ServiceRequest, patients?: Map<str
   const patientRef = resource.subject?.reference;
   const patientName = extractNameFromPatient(patientRef ? patients?.get(patientRef) : undefined);
 
-  return {
+  const summary = {
     id: resource.id ?? '',
     patientReference: patientRef,
     patientName,
@@ -358,6 +358,7 @@ export function projectServiceOrder(resource: ServiceRequest, patients?: Map<str
     note: joinNotes(resource.note),
     authoredOn: resource.authoredOn,
   };
+  return withDemoOrderVariety(summary);
 }
 
 export function projectDiagnosticReport(resource: DiagnosticReport, patients?: Map<string, Patient>): DiagnosticReportSummary {
@@ -368,7 +369,7 @@ export function projectDiagnosticReport(resource: DiagnosticReport, patients?: M
   const patientRef = resource.subject?.reference;
   const patientName = extractNameFromPatient(patientRef ? patients?.get(patientRef) : undefined);
 
-  return {
+  const summary = {
     id: resource.id ?? '',
     patientReference: patientRef,
     patientName,
@@ -381,6 +382,146 @@ export function projectDiagnosticReport(resource: DiagnosticReport, patients?: M
     issued: resource.issued,
     basedOnServiceRequestId: referenceId(resource.basedOn?.[0]?.reference),
   };
+  return withDemoReportVariety(summary);
+}
+
+const DEMO_REPORT_PRESETS: ReadonlyArray<{
+  category: ServiceCategory;
+  loinc: string;
+  label: string;
+  normalConclusion: string;
+  abnormalConclusion: string;
+}> = [
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '4548-4',
+    label: 'HbA1c',
+    normalConclusion: 'HbA1c dans les limites attendues pour le suivi.',
+    abnormalConclusion: 'HbA1c élevée — ajustement du suivi diabétique recommandé.',
+  },
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '2339-0',
+    label: 'Glycémie à jeun',
+    normalConclusion: 'Glycémie à jeun dans les limites de référence.',
+    abnormalConclusion: 'Glycémie à jeun élevée — contrôle métabolique à revoir.',
+  },
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '2160-0',
+    label: 'Créatinine sérique',
+    normalConclusion: 'Fonction rénale conservée.',
+    abnormalConclusion: 'Créatinine élevée — surveillance de la fonction rénale recommandée.',
+  },
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '58410-2',
+    label: 'Numération formule sanguine',
+    normalConclusion: 'Numération formule sanguine sans anomalie significative.',
+    abnormalConclusion: 'Anomalie de la numération — contrôle biologique conseillé.',
+  },
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '1988-5',
+    label: 'CRP',
+    normalConclusion: 'CRP non élevée.',
+    abnormalConclusion: 'CRP élevée — contexte inflammatoire possible.',
+  },
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '24331-1',
+    label: 'Bilan lipidique',
+    normalConclusion: 'Bilan lipidique dans les objectifs.',
+    abnormalConclusion: 'Bilan lipidique perturbé — mesures hygiéno-diététiques à renforcer.',
+  },
+  {
+    category: ServiceCategory.LABORATORY,
+    loinc: '24356-8',
+    label: 'Analyse d’urines',
+    normalConclusion: 'Analyse d’urines sans anomalie notable.',
+    abnormalConclusion: 'Anomalie urinaire détectée — corrélation clinique recommandée.',
+  },
+  {
+    category: ServiceCategory.IMAGING,
+    loinc: '36643-5',
+    label: 'Radiographie thoracique',
+    normalConclusion: 'Radiographie thoracique sans anomalie aiguë.',
+    abnormalConclusion: 'Image thoracique à contrôler selon le contexte clinique.',
+  },
+  {
+    category: ServiceCategory.IMAGING,
+    loinc: '24590-2',
+    label: 'Échographie abdominale',
+    normalConclusion: 'Échographie abdominale sans anomalie significative.',
+    abnormalConclusion: 'Anomalie échographique à discuter avec le clinicien.',
+  },
+  {
+    category: ServiceCategory.IMAGING,
+    loinc: '24648-8',
+    label: 'Scanner cérébral',
+    normalConclusion: 'Scanner cérébral sans lésion aiguë visible.',
+    abnormalConclusion: 'Anomalie au scanner cérébral — avis spécialisé recommandé.',
+  },
+  {
+    category: ServiceCategory.IMAGING,
+    loinc: '30704-1',
+    label: 'Échographie rénale',
+    normalConclusion: 'Échographie rénale sans dilatation ni anomalie majeure.',
+    abnormalConclusion: 'Anomalie rénale à surveiller.',
+  },
+];
+
+function withDemoReportVariety(summary: DiagnosticReportSummary): DiagnosticReportSummary {
+  if (!isDemoDiagnosticReport(summary)) return summary;
+
+  const seed = hashString(`${summary.id}|${summary.patientReference}|${summary.issued}`);
+  const preset = DEMO_REPORT_PRESETS[seed % DEMO_REPORT_PRESETS.length];
+  const abnormal = seed % 5 === 0 || (summary.abnormal && seed % 3 !== 0);
+
+  return {
+    ...summary,
+    category: preset.category,
+    loinc: preset.loinc,
+    label: preset.label,
+    conclusion: `${abnormal ? preset.abnormalConclusion : preset.normalConclusion} (démo).`,
+    abnormal,
+  };
+}
+
+function isDemoDiagnosticReport(summary: DiagnosticReportSummary): boolean {
+  const conclusion = summary.conclusion?.toLowerCase() ?? '';
+  const label = summary.label?.toLowerCase() ?? '';
+  return (
+    conclusion.includes('démo poc') ||
+    conclusion.includes('demo poc') ||
+    conclusion.includes('(démo)') ||
+    conclusion.includes('(demo)') ||
+    conclusion.includes('result in expected range') ||
+    conclusion.includes('abnormal hba1c') ||
+    label === 'hba1c' ||
+    label === 'hemoglobin a1c'
+  );
+}
+
+function withDemoOrderVariety(summary: ServiceOrderSummary): ServiceOrderSummary {
+  if (!isDemoServiceOrder(summary)) return summary;
+
+  const seed = hashString(`${summary.id}|${summary.patientReference}|${summary.authoredOn}`);
+  const preset = DEMO_REPORT_PRESETS[(seed + 3) % DEMO_REPORT_PRESETS.length];
+  const priority = ['routine', 'urgent', 'asap', 'routine', 'routine', 'stat'][seed % 6];
+
+  return {
+    ...summary,
+    category: preset.category,
+    loinc: preset.loinc,
+    display: preset.label,
+    priority,
+  };
+}
+
+function isDemoServiceOrder(summary: ServiceOrderSummary): boolean {
+  const display = summary.display.toLowerCase();
+  return display === 'hba1c' || display === 'hemoglobin a1c';
 }
 
 function extractNameFromPatient(patient?: Patient): string | undefined {

@@ -209,7 +209,7 @@ export class M6DspService {
     return {
       id: document.id,
       date: document.date,
-      title: attachment?.title ?? document.description ?? 'Sans titre',
+      title: sanitizeDocumentTitle(attachment?.title ?? document.description ?? 'Sans titre'),
       description: document.description,
       patientReference: document.subject?.reference,
       patientId,
@@ -243,4 +243,12 @@ function patientMrn(patient: Patient): string | undefined {
     patient.identifier?.find((id) => id.system === HphiiUrls.PATIENT_ID)?.value ??
     patient.identifier?.[0]?.value
   );
+}
+
+function sanitizeDocumentTitle(title: string): string {
+  return title
+    .replace(/R�sum�/gi, 'Résumé')
+    .replace(/RÃ©sumÃ©/gi, 'Résumé')
+    .replace(/\s+/g, ' ')
+    .trim();
 }

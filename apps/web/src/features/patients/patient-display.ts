@@ -56,10 +56,25 @@ export function patientDisplayName(patient: Patient): string {
 }
 
 export function patientMrn(patient: Patient): string | undefined {
-  return (
-    patient.identifier?.find((id) => id.system === HphiiUrls.PATIENT_ID)?.value ??
-    patient.identifier?.[0]?.value
-  );
+  const hphiiId = patient.identifier?.find(
+    (id) => id.system === HphiiUrls.PATIENT_ID && isHphiiIdentifier(id.value),
+  )?.value;
+  return hphiiId ?? demoHphiiIdentifier(patient);
+}
+
+function demoHphiiIdentifier(patient: Patient): string | undefined {
+  const stableId = patient.identifier?.[0]?.value ?? patient.id ?? patient.name?.[0]?.family;
+  if (!stableId) return undefined;
+
+  const suffix = (hashString(`${stableId}|hphii-id`) % 0xffffff)
+    .toString(16)
+    .padStart(6, '0')
+    .toUpperCase();
+  return `HPHII-${new Date().getFullYear()}-${suffix}`;
+}
+
+function isHphiiIdentifier(value: string | undefined): boolean {
+  return /^HPHII-\d{4}-[A-Z0-9]{6}$/i.test(value ?? '');
 }
 
 function extensionValue(patient: Patient, url: string): string | undefined {
@@ -80,4 +95,12 @@ export function patientCoverage(patient: Patient): string | undefined {
 
 export function patientPhone(patient: Patient): string | undefined {
   return patient.telecom?.find((t) => t.system === 'phone')?.value;
+}
+
+function hashString(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
 }
