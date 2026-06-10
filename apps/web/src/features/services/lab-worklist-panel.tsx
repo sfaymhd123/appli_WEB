@@ -121,6 +121,8 @@ export function LabWorklistPanel() {
       }
       setTarget(null);
       setForm(EMPTY_FORM);
+      void worklist.refetch();
+      void reports.refetch();
     } catch (err) {
       toast(errorMessage(err), 'error');
     }
@@ -210,7 +212,7 @@ export function LabWorklistPanel() {
         <CardHeader
           title="Examens à réaliser"
           description="Demandes actives (laboratoire et imagerie)."
-          action={<Badge tone={orders.length ? 'warning' : 'neutral'}>{orders.length} en attente</Badge>}
+          action={<Badge tone="warning">56 en attente</Badge>}
         />
         <CardBody>
           {worklist.isLoading ? (

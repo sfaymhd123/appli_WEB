@@ -96,6 +96,20 @@ function seedMedicationCount(raw: SeedKpis): number {
   return Math.round((raw.cases_total ?? 0) * 0.19);
 }
 
+function seedMedicationStats(raw: SeedKpis) {
+  const total = seedMedicationCount(raw);
+  const pending = Math.max(1, Math.round(total * 0.18));
+  const rejected = Math.max(0, Math.round(total * 0.07));
+  const approved = Math.max(0, total - pending - rejected);
+  return {
+    total,
+    pending,
+    completed: approved + rejected,
+    approved,
+    rejected,
+  };
+}
+
 /** Map the seeder's raw JSON to the canonical {@link KpiReport} (source `seed`). */
 export function mapSeedKpis(raw: SeedKpis): KpiReport {
   const staffDistribution = seedStaffDistribution(raw);
@@ -126,7 +140,7 @@ export function mapSeedKpis(raw: SeedKpis): KpiReport {
     triage: buildTriageStats(byPriority),
     monitoring: { observations: raw.monitoring_observations_total ?? 0 },
     results: buildResultStats(raw.service_results?.total ?? 0, raw.service_results?.abnormal ?? 0),
-    medications: { total: seedMedicationCount(raw) },
+    medications: seedMedicationStats(raw),
     alerts: buildAlertStats(acknowledged, pending, escalated, raw.alerts?.total),
     dspAccessByRole,
   };

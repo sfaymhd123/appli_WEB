@@ -82,6 +82,9 @@ const LIVE_COUNTS: Record<string, number> = {
 function liveSearch(): jest.Mock {
   return jest.fn(async (type: string, params: Record<string, unknown> = {}) => {
     if (params._summary === 'count' || params._summary === 'true') {
+      if (type === 'MedicationRequest' && params.status) {
+        return countset(params.status === 'active' ? 1 : 0);
+      }
       return countset(LIVE_COUNTS[type] ?? 0);
     }
     switch (type) {
@@ -172,10 +175,16 @@ describe('AnalyticsService', () => {
       expect(kpis.monitoring.observations).toBe(10);
 
       // results: 1 of 4 abnormal
-      expect(kpis.results).toEqual({ total: 4, abnormal: 1, abnormalPct: 25 });
+      expect(kpis.results).toEqual({ total: 4, abnormal: 1, pending: 0, abnormalPct: 25 });
 
-      // medications: 1 total
-      expect(kpis.medications).toEqual({ total: 1 });
+      // medications: 1 total, already validated
+      expect(kpis.medications).toEqual({
+        total: 1,
+        pending: 0,
+        completed: 1,
+        approved: 1,
+        rejected: 0,
+      });
 
       // alerts: ack=1, escalated=1, pending=2 (one explicit + one missing) → total 4
       expect(kpis.alerts).toEqual({
@@ -224,8 +233,8 @@ describe('AnalyticsService', () => {
         pathwayMix: { chronic: 232, episodic: 299, total: 531, chronicPct: 43.7, episodicPct: 56.3 },
         triage: { byPriority: { P1: 51, P2: 140, P3: 303, P4: 164, P5: 0 }, total: 658, criticalPct: 7.8 },
         monitoring: { observations: 10440 },
-        results: { total: 553, abnormal: 94, abnormalPct: 17 },
-        medications: { total: 101 },
+        results: { total: 553, abnormal: 94, pending: 0, abnormalPct: 17 },
+        medications: { total: 101, pending: 18, completed: 83, approved: 76, rejected: 7 },
         alerts: {
           total: 625,
           acknowledged: 420,
@@ -272,8 +281,8 @@ describe('AnalyticsService', () => {
       pathwayMix: { chronic: 232, episodic: 299, total: 531, chronicPct: 43.7, episodicPct: 56.3 },
       triage: { byPriority: { P1: 51, P2: 140, P3: 303, P4: 164, P5: 0 }, total: 658, criticalPct: 7.8 },
       monitoring: { observations: 10440 },
-      results: { total: 553, abnormal: 94, abnormalPct: 17 },
-      medications: { total: 100 },
+      results: { total: 553, abnormal: 94, pending: 0, abnormalPct: 17 },
+      medications: { total: 100, pending: 18, completed: 82, approved: 75, rejected: 7 },
       alerts: {
         total: 626,
         acknowledged: 445,

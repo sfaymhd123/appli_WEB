@@ -34,12 +34,17 @@ export interface MonitoringStats {
 export interface ResultStats {
   total: number;
   abnormal: number;
+  pending: number;
   abnormalPct: number;
 }
 
 /** Medication requests volume (M5 MedicationRequest). */
 export interface MedicationStats {
   total: number;
+  pending: number;
+  completed: number;
+  approved: number;
+  rejected: number;
 }
 
 /** Alert lifecycle counts (M4 DetectedIssue acknowledgement-status, §8). */

@@ -53,8 +53,22 @@ export default function App() {
         />
         {/* DSP (M6): read_record is allowed for all roles — the gateway filters
             the Bundle per §6, so no client-side resource/role gate here. */}
-        <Route path="/dsp" element={<DspEntryPage />} />
-        <Route path="/dsp/:patientId" element={<DspPage />} />
+        <Route
+          path="/dsp"
+          element={
+            <RequireRole roles={[Role.ADMIN, Role.PHYSICIAN, Role.NURSE]}>
+              <DspEntryPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/dsp/:patientId"
+          element={
+            <RequireRole roles={[Role.ADMIN, Role.PHYSICIAN, Role.NURSE]}>
+              <DspPage />
+            </RequireRole>
+          }
+        />
         <Route
           path="/triage"
           element={

@@ -113,8 +113,8 @@ export function buildTriageStats(byPriority: Record<TriagePriority, number>): Tr
   return { byPriority, total, criticalPct: pct(byPriority.P1 ?? 0, total) };
 }
 
-export function buildResultStats(total: number, abnormal: number): ResultStats {
-  return { total, abnormal, abnormalPct: pct(abnormal, total) };
+export function buildResultStats(total: number, abnormal: number, pending = 0): ResultStats {
+  return { total, abnormal, pending, abnormalPct: pct(abnormal, total) };
 }
 
 export function buildAlertStats(

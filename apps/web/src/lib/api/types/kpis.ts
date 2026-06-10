@@ -26,7 +26,16 @@ export interface MonitoringStats {
 export interface ResultStats {
   total: number;
   abnormal: number;
+  pending: number;
   abnormalPct: number;
+}
+
+export interface MedicationStats {
+  total: number;
+  pending: number;
+  completed: number;
+  approved: number;
+  rejected: number;
 }
 
 export interface AlertStats {
@@ -62,7 +71,7 @@ export interface KpiReport {
   triage: TriageStats;
   monitoring: MonitoringStats;
   results: ResultStats;
-  medications: { total: number };
+  medications: MedicationStats;
   alerts: AlertStats;
   dspAccessByRole: DspAccessByRole;
 }

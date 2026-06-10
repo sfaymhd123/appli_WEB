@@ -325,7 +325,7 @@ export function projectPrescription(resource: MedicationRequest, patients?: Map<
   const patientRef = resource.subject?.reference;
   const patientName = extractNameFromPatient(patientRef ? patients?.get(patientRef) : undefined);
 
-  return {
+  const summary: PrescriptionSummary = {
     id: resource.id ?? '',
     patientReference: patientRef,
     patientName,
@@ -340,6 +340,8 @@ export function projectPrescription(resource: MedicationRequest, patients?: Map<
     authoredOn: resource.authoredOn,
     availability: simulateStock(medication),
   };
+
+  return withDemoPrescriptionVariety(summary);
 }
 
 export function projectServiceOrder(resource: ServiceRequest, patients?: Map<string, Patient>): ServiceOrderSummary {
@@ -522,6 +524,128 @@ function withDemoOrderVariety(summary: ServiceOrderSummary): ServiceOrderSummary
 function isDemoServiceOrder(summary: ServiceOrderSummary): boolean {
   const display = summary.display.toLowerCase();
   return display === 'hba1c' || display === 'hemoglobin a1c';
+}
+
+const DEMO_MEDICATION_PRESETS: ReadonlyArray<{
+  medication: string;
+  dosageInstruction: string;
+  quantity: number;
+  quantityUnit: string;
+}> = [
+  {
+    medication: 'Metformine 500 mg',
+    dosageInstruction: '1 comprimé matin et soir',
+    quantity: 60,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Amlodipine 5 mg',
+    dosageInstruction: '1 comprimé le matin',
+    quantity: 30,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Losartan 50 mg',
+    dosageInstruction: '1 comprimé le matin',
+    quantity: 30,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Atorvastatine 20 mg',
+    dosageInstruction: '1 comprimé le soir',
+    quantity: 30,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Paracétamol 500 mg',
+    dosageInstruction: '1 comprimé toutes les 8 heures si douleur',
+    quantity: 24,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Amoxicilline 1 g',
+    dosageInstruction: '1 comprimé matin et soir pendant 7 jours',
+    quantity: 14,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Oméprazole 20 mg',
+    dosageInstruction: '1 gélule le matin avant repas',
+    quantity: 30,
+    quantityUnit: 'gélules',
+  },
+  {
+    medication: 'Aspirine 100 mg',
+    dosageInstruction: '1 comprimé par jour',
+    quantity: 30,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Furosémide 40 mg',
+    dosageInstruction: '1 comprimé le matin',
+    quantity: 30,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Salbutamol inhalateur',
+    dosageInstruction: '2 bouffées si gêne respiratoire',
+    quantity: 1,
+    quantityUnit: 'inhalateur',
+  },
+  {
+    medication: 'Cétirizine 10 mg',
+    dosageInstruction: '1 comprimé le soir',
+    quantity: 15,
+    quantityUnit: 'comprimés',
+  },
+  {
+    medication: 'Ibuprofène 400 mg',
+    dosageInstruction: '1 comprimé toutes les 8 heures si douleur',
+    quantity: 20,
+    quantityUnit: 'comprimés',
+  },
+];
+
+function withDemoPrescriptionVariety(summary: PrescriptionSummary): PrescriptionSummary {
+  if (!isDemoPrescription(summary)) return withKnownMedicationQuantity(summary);
+
+  const seed = hashString(`${summary.id}|${summary.patientReference}|${summary.authoredOn}`);
+  const preset = DEMO_MEDICATION_PRESETS[seed % DEMO_MEDICATION_PRESETS.length];
+
+  return {
+    ...summary,
+    medication: preset.medication,
+    dosageInstruction: preset.dosageInstruction,
+    quantity: preset.quantity,
+    quantityUnit: preset.quantityUnit,
+    availability: simulateStock(preset.medication),
+  };
+}
+
+function isDemoPrescription(summary: PrescriptionSummary): boolean {
+  const medication = summary.medication.toLowerCase();
+  const dosage = summary.dosageInstruction?.toLowerCase() ?? '';
+  return (
+    dosage.includes('daily dose per protocol') ||
+    dosage.includes('reason:') ||
+    dosage.includes('hypertension observation') ||
+    (medication === 'amlodipine 5 mg' && !summary.quantity)
+  );
+}
+
+function withKnownMedicationQuantity(summary: PrescriptionSummary): PrescriptionSummary {
+  if (summary.quantity) return summary;
+
+  const preset = DEMO_MEDICATION_PRESETS.find(
+    (item) => item.medication.toLowerCase() === summary.medication.toLowerCase(),
+  );
+  if (!preset) return summary;
+
+  return {
+    ...summary,
+    quantity: preset.quantity,
+    quantityUnit: preset.quantityUnit,
+  };
 }
 
 function extractNameFromPatient(patient?: Patient): string | undefined {

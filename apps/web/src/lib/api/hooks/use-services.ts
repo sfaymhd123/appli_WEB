@@ -134,7 +134,17 @@ export function useCreateDiagnosticReport() {
       const { data } = await api.post<DiagnosticReportResult>('/diagnostic-reports', body);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_result, body) => {
+      if (body.serviceRequestId) {
+        queryClient.setQueryData<ServiceOrderListResult | undefined>(
+          servicesKeys.orders('active'),
+          (current) => {
+            if (!current) return current;
+            const orders = current.orders.filter((order) => order.id !== body.serviceRequestId);
+            return { ...current, total: orders.length, orders };
+          },
+        );
+      }
       void queryClient.invalidateQueries({ queryKey: servicesKeys.all });
     },
   });

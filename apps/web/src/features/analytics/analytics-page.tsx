@@ -79,8 +79,9 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
   const isAdmin = role === Role.ADMIN;
   const isClinical = role === Role.PHYSICIAN || role === Role.NURSE;
   const isLab = role === Role.LAB_TECHNICIAN;
+  const isPharmacist = role === Role.PHARMACIST;
 
-  const { pathwayMix, triage, monitoring, results, alerts, dspAccessByRole, demographics, staffDistribution } = report;
+  const { pathwayMix, triage, monitoring, results, medications, alerts, dspAccessByRole, demographics, staffDistribution } = report;
 
   const triageBars: BarDatum[] = TRIAGE_PRIORITIES.map((priority) => ({
     label: TriagePriorityLabels[priority],
@@ -125,13 +126,16 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
     { label: 'Escaladées', value: alerts?.escalated ?? 0, colorClass: 'bg-red-500' },
   ];
 
+  const pendingResults = results?.pending ?? 0;
+  const completedResults = Math.max(0, (results?.total ?? 0) - pendingResults);
   const resultSegments: Segment[] = [
     {
       label: 'Normaux',
-      value: Math.max(0, (results?.total ?? 0) - (results?.abnormal ?? 0)),
+      value: Math.max(0, completedResults - (results?.abnormal ?? 0)),
       colorClass: 'bg-green-500',
     },
     { label: 'Anormaux', value: results?.abnormal ?? 0, colorClass: 'bg-red-500' },
+    { label: 'En attente', value: pendingResults, colorClass: 'bg-amber-500' },
   ];
 
   return (
@@ -156,7 +160,37 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
         )}
         
         {(isAdmin || isLab) && (
-          <StatCard label="Analyses totales" value={intText(results?.total)} hint="Examens traités" />
+          <StatCard
+            label="Analyses totales"
+            value={intText(results?.total)}
+            hint={isLab ? `${intText(completedResults)} traités - ${intText(pendingResults)} en attente` : "Examens traités"}
+          />
+        )}
+
+        {isLab && (
+          <StatCard
+            label="Analyses en attente"
+            value={intText(results?.pending)}
+            hint="Examens à saisir"
+            tone={pendingResults > 0 ? 'warning' : 'neutral'}
+          />
+        )}
+
+        {isPharmacist && (
+          <StatCard
+            label="Demandes réalisées"
+            value={intText(medications?.completed)}
+            hint={`${intText(medications?.approved)} validées · ${intText(medications?.rejected)} rejetées`}
+          />
+        )}
+
+        {isPharmacist && (
+          <StatCard
+            label="Demandes actives"
+            value={intText(medications?.pending)}
+            hint={`${intText(medications?.total)} demandes au total`}
+            tone={(medications?.pending ?? 0) > 0 ? 'warning' : 'neutral'}
+          />
         )}
 
         {(isAdmin || isClinical) && (
@@ -167,7 +201,7 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           />
         )}
 
-        {!isLab && (
+        {!isLab && !isPharmacist && (
           <StatCard
             label="Observations"
             value={intText(monitoring?.observations)}
@@ -184,7 +218,7 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           />
         )}
 
-        {!isLab && (
+        {!isLab && !isPharmacist && (
           <StatCard
             label="Alertes actives"
             value={pctText(alerts?.unacknowledgedPct)}
@@ -241,7 +275,7 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           </Card>
         )}
 
-        {!isLab && (
+        {!isLab && !isPharmacist && (
           <Card>
             <CardHeader
               title="Cycle de vie des alertes"

@@ -51,6 +51,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     module: 'M6',
     description: 'Consultation du dossier filtrée par rôle (RBAC §6).',
     icon: 'FileHeart',
+    roles: [Role.ADMIN, Role.PHYSICIAN, Role.NURSE],
   },
   {
     to: '/triage',
