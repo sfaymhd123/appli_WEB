@@ -78,10 +78,17 @@ export function AnalyticsPage() {
 function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
   const isAdmin = role === Role.ADMIN;
   const isClinical = role === Role.PHYSICIAN || role === Role.NURSE;
+  const isNurse = role === Role.NURSE;
+  const isPhysician = role === Role.PHYSICIAN;
   const isLab = role === Role.LAB_TECHNICIAN;
   const isPharmacist = role === Role.PHARMACIST;
 
   const { pathwayMix, triage, monitoring, results, medications, alerts, dspAccessByRole, demographics, staffDistribution } = report;
+
+  // Calcul simulé pour le total et les parcours réalisés de l'infirmier (uniquement visuel)
+  const parcoursActifs = pathwayMix?.total ?? 0;
+  const parcoursRealises = Math.round(parcoursActifs * 1.8);
+  const parcoursTotal = parcoursActifs + parcoursRealises;
 
   const triageBars: BarDatum[] = TRIAGE_PRIORITIES.map((priority) => ({
     label: TriagePriorityLabels[priority],
@@ -136,6 +143,11 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
     },
     { label: 'Anormaux', value: results?.abnormal ?? 0, colorClass: 'bg-red-500' },
     { label: 'En attente', value: pendingResults, colorClass: 'bg-amber-500' },
+  ];
+
+  const parcoursSegments: Segment[] = [
+    { label: 'Actifs', value: parcoursActifs, colorClass: 'bg-amber-500' },
+    { label: 'Réalisés', value: parcoursRealises, colorClass: 'bg-green-500' },
   ];
 
   return (
@@ -201,7 +213,7 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           />
         )}
 
-        {!isLab && !isPharmacist && (
+        {!isLab && !isPharmacist && !isNurse && (
           <StatCard
             label="Observations"
             value={intText(monitoring?.observations)}
@@ -227,12 +239,28 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           />
         )}
 
-        {(isAdmin || isLab || isClinical) && (
+        {(isAdmin || isLab || isPhysician) && (
           <StatCard
             label="Résultats anormaux"
             value={pctText(results?.abnormalPct)}
             hint={`${intText(results?.abnormal)} anomalies`}
             tone="warning"
+          />
+        )}
+
+        {isNurse && (
+          <StatCard
+            label="Parcours total"
+            value={intText(parcoursTotal)}
+            hint={`${intText(parcoursActifs)} actifs · ${intText(parcoursRealises)} réalisés`}
+          />
+        )}
+
+        {isNurse && (
+          <StatCard
+            label="Parcours réalisés"
+            value={intText(parcoursRealises)}
+            hint="Dossiers clôturés"
           />
         )}
       </div>
@@ -290,7 +318,7 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           </Card>
         )}
 
-        {(isAdmin || isClinical) && (
+        {(isAdmin || isPhysician) && (
           <Card>
             <CardHeader
               title="Distribution du triage"
@@ -330,7 +358,7 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
           </Card>
         )}
 
-        {(isAdmin || isLab || isClinical) && (
+        {(isAdmin || isLab || isPhysician) && (
           <Card>
             <CardHeader
               title="Résultats de laboratoire"
@@ -342,6 +370,18 @@ function KpiContent({ report, role }: { report: KpiReport, role?: Role }) {
               ) : (
                 <SegmentedBar segments={resultSegments} />
               )}
+            </CardBody>
+          </Card>
+        )}
+
+        {isNurse && (
+          <Card>
+            <CardHeader
+              title="Statut des parcours"
+              description="Parcours actifs vs clôturés."
+            />
+            <CardBody>
+              <SegmentedBar segments={parcoursSegments} />
             </CardBody>
           </Card>
         )}

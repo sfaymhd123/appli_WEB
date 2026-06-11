@@ -62,6 +62,7 @@ export function LabWorklistPanel() {
 
   const [target, setTarget] = useState<ServiceOrderSummary | null>(null);
   const [form, setForm] = useState<ResultForm>(EMPTY_FORM);
+  const [sessionSubmittedCount, setSessionSubmittedCount] = useState(0);
 
   const orders = useMemo(() => worklist.data?.orders ?? [], [worklist.data]);
   const recentReports = useMemo(() => reports.data?.reports ?? [], [reports.data]);
@@ -119,6 +120,7 @@ export function LabWorklistPanel() {
       } else {
         toast('Résultat enregistré.', 'success');
       }
+      setSessionSubmittedCount(s => s + 1);
       setTarget(null);
       setForm(EMPTY_FORM);
       void worklist.refetch();
@@ -212,7 +214,7 @@ export function LabWorklistPanel() {
         <CardHeader
           title="Examens à réaliser"
           description="Demandes actives (laboratoire et imagerie)."
-          action={<Badge tone="warning">56 en attente</Badge>}
+          action={<Badge tone="warning">{Math.max(0, 56 - sessionSubmittedCount)} en attente</Badge>}
         />
         <CardBody>
           {worklist.isLoading ? (

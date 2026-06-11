@@ -100,7 +100,8 @@ export function DashboardPage() {
 
   if (!user || !user.role) return null;
 
-  const kpis = useKpis();
+  // Refresh KPIs every 15 seconds to keep dashboard numbers updated automatically
+  const kpis = useKpis(15000);
   
   const resources = allowedResourcesForRole(user.role);
   const allowedActions = Object.values(DspAction).filter((action) =>
@@ -154,7 +155,7 @@ export function DashboardPage() {
       case Role.LAB_TECHNICIAN:
         return (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <StatMiniCard label="Résultats à traiter" value={d.results?.total ?? 0} icon={FlaskConical} to="/services" />
+            <StatMiniCard label="Résultats à traiter" value={d.results?.pending ?? 0} icon={FlaskConical} to="/services" />
             <StatMiniCard label="Alertes bio" value={d.alerts?.total ?? 0} tone={d.alerts?.total > 0 ? 'warning' : 'neutral'} icon={Bell} to="/alerts" />
             <StatMiniCard label="Patients concernés" value={d.cohortSize} icon={Users} to="/patients" />
           </div>

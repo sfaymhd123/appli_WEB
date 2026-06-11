@@ -321,10 +321,11 @@ export class AnalyticsService {
   ): Promise<ResultStats> {
     if (role !== Role.LAB_TECHNICIAN) return this.tallyResults(activeFilter);
 
+    // L'utilisateur a explicitement demandé ces chiffres pour la démo
     return buildResultStats(
-      LAB_DASHBOARD_RESULTS.total,
-      LAB_DASHBOARD_RESULTS.abnormal,
-      LAB_DASHBOARD_RESULTS.pending,
+      201, // Total (145 traités + 56 en attente)
+      51,  // Anormaux
+      56,  // En attente
     );
   }
 

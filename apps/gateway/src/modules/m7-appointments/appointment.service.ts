@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Appointment, Patient } from 'fhir/r4';
-import { HphiiUrls } from '@hphii/fhir-domain';
+import { HphiiUrls, Role } from '@hphii/fhir-domain';
 import { AppointmentHelper, FhirService } from '../../core/fhir';
 import { NotificationService } from '../../core/notifications';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -9,12 +9,22 @@ import type { AppointmentList, AppointmentSummary } from './appointment.types';
 
 const MIN_VISIBLE_APPOINTMENTS = 6;
 const MAX_VISIBLE_APPOINTMENTS = 8;
-const DEMO_REASONS = [
-  'Consultation de suivi',
+
+const NURSE_CARE_REASONS = [
+  'Soin infirmier',
   'Controle tensionnel',
   'Suivi diabete',
-  'Resultats de laboratoire',
+  'Prelevement sanguin',
+  'Changement de pansement',
+  'Administration traitement',
+];
+
+const PHYSICIAN_REASONS = [
+  'Consultation de suivi',
   'Renouvellement ordonnance',
+  'Avis specialiste',
+  'Examen clinique',
+  'Resultats de laboratoire',
   'Evaluation parcours chronique',
 ];
 
@@ -27,14 +37,33 @@ export class AppointmentService {
     private readonly notifications: NotificationService,
   ) {}
 
-  async list(): Promise<AppointmentList> {
+  async list(role?: Role): Promise<AppointmentList> {
     const bundle = await this.fhir.search<Appointment>('Appointment', { _count: 50 });
-    const appointments = (bundle.entry ?? [])
+    const isNurse = role === Role.NURSE;
+
+    let appointments = (bundle.entry ?? [])
       .map((entry) => entry.resource)
       .filter((resource): resource is Appointment => resource?.resourceType === 'Appointment')
       .filter((appointment) => Boolean(appointment.start))
-      .filter((appointment) => isUpcoming(appointment.start))
-      .sort((a, b) => String(a.start).localeCompare(String(b.start)));
+      .filter((appointment) => isUpcoming(appointment.start));
+
+    // Filter by role if specified
+    if (role) {
+      appointments = appointments.filter((apt) => {
+        const desc = (apt.description ?? '').toLowerCase();
+        if (isNurse) {
+          // Nurse sees only care-related appointments
+          return NURSE_CARE_REASONS.some((r) => desc.includes(r.toLowerCase())) ||
+                 desc.includes('soin') || desc.includes('infirmier');
+        } else {
+          // Physicians and others see medical consultations
+          return PHYSICIAN_REASONS.some((r) => desc.includes(r.toLowerCase())) ||
+                 !NURSE_CARE_REASONS.some((r) => desc.includes(r.toLowerCase()));
+        }
+      });
+    }
+
+    appointments.sort((a, b) => String(a.start).localeCompare(String(b.start)));
 
     const patientIds = unique(
       appointments
@@ -50,7 +79,7 @@ export class AppointmentService {
     const rows = [...realRows];
 
     if (rows.length < MIN_VISIBLE_APPOINTMENTS) {
-      rows.push(...(await this.demoAppointments(MIN_VISIBLE_APPOINTMENTS - rows.length, rows)));
+      rows.push(...(await this.demoAppointments(MIN_VISIBLE_APPOINTMENTS - rows.length, rows, role)));
     }
 
     rows.sort((a, b) => a.start.localeCompare(b.start));
@@ -95,6 +124,7 @@ export class AppointmentService {
   private async demoAppointments(
     count: number,
     existing: AppointmentSummary[],
+    role?: Role
   ): Promise<AppointmentSummary[]> {
     const existingPatientIds = new Set(existing.map((appointment) => appointment.patientId));
     const bundle = await this.fhir.search<Patient>('Patient', { _count: 20 });
@@ -105,6 +135,8 @@ export class AppointmentService {
       .filter((patient) => patient.id && !existingPatientIds.has(patient.id))
       .slice(0, count);
 
+    const reasons = role === Role.NURSE ? NURSE_CARE_REASONS : PHYSICIAN_REASONS;
+
     return patients.map((patient, index) => ({
       id: `demo-${patient.id ?? index}`,
       patientId: patient.id,
@@ -113,7 +145,7 @@ export class AppointmentService {
       phone: patientPhone(patient),
       start: demoStart(index),
       status: 'booked',
-      description: DEMO_REASONS[index % DEMO_REASONS.length],
+      description: reasons[index % reasons.length],
       source: 'demo',
     }));
   }

@@ -154,7 +154,11 @@ describe('Gateway e2e — clinical flows over the RBAC + audit pipeline', () => 
 
   /** Register a patient through M1 and return its logical id. */
   async function register(role: Role = Role.NURSE): Promise<string> {
-    const res = await request(server()).post('/patients').set(as(role)).send(patientBody).expect(201);
+    const res = await request(server()).post('/patients').set(as(role)).send(patientBody);
+    if (res.status !== 201) {
+      console.error('REGISTER ERROR:', res.body);
+    }
+    expect(res.status).toBe(201);
     return res.body.id as string;
   }
 
